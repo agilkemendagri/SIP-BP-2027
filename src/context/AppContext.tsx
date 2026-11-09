@@ -7,7 +7,7 @@ import {
  deleteFinancialTransaction,bulkMarkFinancialSakti,unlockFinancialSakti,type SaktiBatchReport
 } from "../lib/sipBpFinance";
 
-export type ActiveView="dashboard"|"kuitansi_profesi"|"kuitansi_luar_kota"|"kuitansi_dalam_kota"|"sptb"|"transaksi"|"rekap"|"pengguna";
+export type ActiveView="dashboard"|"kuitansi_profesi"|"kuitansi_luar_kota"|"kuitansi_dalam_kota"|"sptb"|"transaksi"|"rekap"|"pengguna"|"ekstraktor";
 export interface ToastMessage {id:string;message:string;type:"success"|"warning"|"error"|"info"}
 interface AppContextType {
  activeView:ActiveView;
