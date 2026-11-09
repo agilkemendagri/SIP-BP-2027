@@ -115,8 +115,8 @@ export const DashboardView: React.FC = () => {
               onChange={e => setFilterTahun(e.target.value)}
               className="bg-transparent font-semibold text-slate-900 focus:outline-none cursor-pointer"
             >
-              <option value="2026">2026</option>
-              <option value="2025">2025</option>
+              {Array.from(new Set([new Date().getFullYear(),...visibleTransaksi.map(t=>Number(t.tanggalKuitansi.slice(0,4)))]))
+                .sort((a,b)=>b-a).map(year=><option key={year} value={String(year)}>{year}</option>)}
               <option value="SEMUA">Semua Tahun</option>
             </select>
           </div>
