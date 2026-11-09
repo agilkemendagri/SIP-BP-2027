@@ -2,14 +2,15 @@ import {isCollectiveReceipt} from "../src/utils/receiptKind";
 import { describe, it, expect } from "bun:test";
 import { readFileSync } from "node:fs";
 
-const sptb = readFileSync("src/components/modals/SptbPrintModal.tsx", "utf8");
+const sptb = readFileSync("src/components/sptb/SptbPrintDocument.tsx", "utf8");
+const sptbModal = readFileSync("src/components/modals/SptbPrintModal.tsx", "utf8");
 const kuitansi = readFileSync("src/components/modals/KuitansiPrintModal.tsx", "utf8");
 const standalone = readFileSync("src/components/kuitansi/PrintStandaloneView.tsx", "utf8");
 
 describe("Identitas surat keuangan BBPKA PDN IV", () => {
-  it("menggunakan Kementerian Dalam Negeri dan identitas satker yang konsisten", () => {
-    expect(sptb).toContain("KEMENTERIAN DALAM NEGERI REPUBLIK INDONESIA");
-    expect(sptb).toContain("BALAI BESAR PENGEMBANGAN KOMPETENSI APARATUR PEMERINTAHAN DALAM NEGERI IV");
+  it("menggunakan identitas satker di SPTB dan kuitansi tanpa kop lama", () => {
+    expect(sptb).toContain("Balai Besar Pengembangan Kompetensi Aparatur Pemerintahan Dalam Negeri IV");
+    expect(sptb).toContain("SURAT PERNYATAAN TANGGUNG JAWAB BELANJA");
     expect(kuitansi).toContain("Balai Besar Pengembangan Kompetensi Aparatur Pemerintahan Dalam Negeri IV");
     for (const source of [sptb,kuitansi]) {
       expect(source).not.toContain("KEMENTERIAN PERDAGANGAN");
@@ -20,7 +21,7 @@ describe("Identitas surat keuangan BBPKA PDN IV", () => {
   it("tidak mencetak nomor satker atau alamat tak terverifikasi", () => {
     expect(sptb).not.toContain("BBPKA PDN IV (411892)");
     expect(sptb).not.toContain("Jakarta, {formatTanggalIndo");
-    expect(sptb).toContain("Makassar, {formatTanggalIndo");
+    expect(sptbModal).toContain("kota:'Makassar'");
   });
 });
 
