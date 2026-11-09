@@ -89,7 +89,7 @@ export async function signInUsername(username: string,password: string) {
   const name=username.trim().toLowerCase();
   // First Production Bendahara may use a verified institutional email.
   // BPP accounts can continue using their local usernames without exposing profiles publicly.
-  const emailLogin = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(name);
+  const emailLogin = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(name);
   if(!emailLogin && !/^[a-z][a-z0-9._-]{2,31}$/.test(name)) throw new Error("Username atau email tidak valid");
   const email=emailLogin ? name : name+"@"+authDomain;
   const data = await request("/auth/v1/token?grant_type=password",{
