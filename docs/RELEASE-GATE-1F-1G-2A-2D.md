@@ -6,7 +6,7 @@ Branch kandidat: `fitur-supabase-auth`. Domain utama `https://sip-bp.vercel.app`
 ## 1F — Tampilan, ekspor, cetak, dan penanda SAKTI
 - [x] Perbaikan CSV escaping untuk formula injection pada data teks.
 - [x] Unit test utilitas CSV, terbilang, dan tanggal ditambahkan ke `tests/formatters.test.ts`; workflow CI dikonfigurasi untuk `bun test` sebelum build.
-- [ ] **GitHub Actions gagal** pada run `42674093663` dan `42674439582` (status `failure`), termasuk run terbaru `42703265345`; endpoint job list belum mengembalikan detail kerja sehingga akar penyebab belum dapat diverifikasi. Penyebab belum terverifikasi. Jangan menyebut tes sudah lulus.
+- [x] **GitHub Actions sudah diperbaiki.** Log run `42703265345` mengungkap error TypeScript dari `supabase/functions/sip-bp-accounts/index.ts` (modul Deno Edge Runtime tidak tersedia bagi typecheck React). `tsconfig.json` sekarang mengecualikan `supabase/functions` dari typecheck aplikasi. Run `42703593415` selesai **success**: TypeScript sukses, **4 tests pass, 0 fail**, Vite build sukses. Edge Function masih memerlukan pengujian runtime terpisah.
 - [x] Perbaikan batch SAKTI: RPC atomik dicoba terlebih dahulu; apabila gagal, ditangani per SPTB dan UI menampilkan jumlah serta alasan kegagalan; duplikasi submission saat proses sedang berjalan dicegah.
 - [x] Vercel Preview terbaru selesai build dengan status READY.
 - [ ] Tes browser interaktif: login melalui tiga akun, tambah/edit/detail transaksi tiap jenis, modal cetak, PDF A4 portrait/landscape, ekspor langsung, refresh/sesi kadaluwarsa, bulk 100 termasuk campuran gagal.
