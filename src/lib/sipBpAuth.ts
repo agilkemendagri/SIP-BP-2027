@@ -87,14 +87,18 @@ export async function sessionToken() {
 }
 export async function signInUsername(username: string,password: string) {
   const name=username.trim().toLowerCase();
-  if (!/^[a-z][a-z0-9._-]{2,31}$/.test(name)) throw new Error("Username tidak valid");
+  // First Production Bendahara may use a verified institutional email.
+  // BPP accounts can continue using their local usernames without exposing profiles publicly.
+  const emailLogin = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(name);
+  if(!emailLogin && !/^[a-z][a-z0-9._-]{2,31}$/.test(name)) throw new Error("Username atau email tidak valid");
+  const email=emailLogin ? name : name+"@"+authDomain;
   const data = await request("/auth/v1/token?grant_type=password",{
-    method:"POST",body:JSON.stringify({email: name+"@"+authDomain,password})
+    method:"POST",body:JSON.stringify({email,password})
   });
   storeAuth(data);
   try {
     const p=await ownProfile();
-    if (!p || !p.aktif || p.username!==name) throw new Error("Akun SIP-BP tidak aktif atau belum terdaftar");
+    if (!p || !p.aktif || (!emailLogin && p.username!==name)) throw new Error("Akun SIP-BP tidak aktif atau belum terdaftar");
     return p;
   } catch(e) { await signOut(); throw e; }
 }
