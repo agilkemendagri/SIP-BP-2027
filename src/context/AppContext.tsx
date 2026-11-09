@@ -1,7 +1,7 @@
 import React,{createContext,useContext,useState,useEffect,useMemo,useCallback,ReactNode} from "react";
 import type { Role,Transaksi,UserSimulasi,SumberDana } from "../types";
 import type { SipProfile } from "../lib/sipBpAuth";
-import {listProfiles} from "../lib/sipBpAuth";
+import {listProfiles,updateBendaharaProfile} from "../lib/sipBpAuth";
 import {
  fetchFinancialTransactions,saveFinancialTransaction,changeFinancialStatus,
  deleteFinancialTransaction,bulkMarkFinancialSakti,unlockFinancialSakti,type SaktiBatchReport
@@ -15,6 +15,7 @@ interface AppContextType {
  currentRole:Role;
  setCurrentRole:(role:Role)=>void;
  currentUser:UserSimulasi;
+ updateOwnBendaharaProfile:(fields:{nama_lengkap:string;nip:string;jabatan:string})=>Promise<void>;
  allTransaksi:Transaksi[];
  visibleTransaksi:Transaksi[];
  penggunaList:UserSimulasi[];
@@ -51,7 +52,7 @@ const userFromProfile=(p:SipProfile):UserSimulasi=>({
  peran:p.role,sumberDanaAkses:p.role==="bendahara"?"SEMUA":p.role==="bpp_rm"?"RM":"PNBP",
  statusAktif:p.aktif,email:p.email_kontak||""
 });
-export const AppProvider:React.FC<{children:ReactNode;authenticatedProfile:SipProfile}>=({children,authenticatedProfile})=>{
+export const AppProvider:React.FC<{children:ReactNode;authenticatedProfile:SipProfile;onProfileUpdated:(profile:SipProfile)=>void}>=({children,authenticatedProfile,onProfileUpdated})=>{
  const [activeView,setActiveView]=useState<ActiveView>("dashboard");
  const [allTransaksi,setAllTransaksi]=useState<Transaksi[]>([]);
  const [penggunaList,setPenggunaList]=useState<UserSimulasi[]>([userFromProfile(authenticatedProfile)]);
@@ -59,6 +60,12 @@ export const AppProvider:React.FC<{children:ReactNode;authenticatedProfile:SipPr
  const [dataError,setDataError]=useState("");
  const currentRole=authenticatedProfile.role;
  const currentUser=useMemo(()=>userFromProfile(authenticatedProfile),[authenticatedProfile]);
+ const updateOwnBendaharaProfile=async(fields:{nama_lengkap:string;nip:string;jabatan:string})=>{
+  const updated=await updateBendaharaProfile(fields);
+  onProfileUpdated(updated);
+  setPenggunaList(prev=>prev.map(u=>u.id===updated.user_id?userFromProfile(updated):u));
+  showToast("Profil Bendahara berhasil diperbarui.","success");
+ };
  const [filterTahun,setFilterTahun]=useState(String(new Date().getFullYear()));
  const [filterBulan,setFilterBulan]=useState("SEMUA");
  const [previewKuitansi,setPreviewKuitansi]=useState<Transaksi|null>(null);
@@ -172,7 +179,7 @@ export const AppProvider:React.FC<{children:ReactNode;authenticatedProfile:SipPr
  const updateUser=()=>showToast("Kelola akun melalui menu Pengguna","info");
  const resetToDefaultData=()=>showToast("Reset data simulasi dinonaktifkan untuk database Supabase","warning");
  return <C.Provider value={{
-   activeView,setActiveView,currentRole,setCurrentRole,currentUser,allTransaksi,visibleTransaksi,
+   activeView,setActiveView,currentRole,setCurrentRole,currentUser,updateOwnBendaharaProfile,allTransaksi,visibleTransaksi,
    penggunaList,loadingTransaksi,dataError,refreshTransaksi,filterTahun,setFilterTahun,filterBulan,setFilterBulan,
    addTransaksi,updateTransaksi,deleteTransaksi,markSaktiBulk,toggleSaktiSingle,finalizeTransaksi,returnToDraft,
    addUser,updateUser,resetToDefaultData,previewKuitansi,setPreviewKuitansi,previewSptb,setPreviewSptb,
