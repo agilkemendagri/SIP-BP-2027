@@ -76,15 +76,16 @@ function parseLine(line:string,lastName:string,index:number):ImportedRow|null{
 }
 
 const sourceHint=(input:string):'RM'|'PNBP'|null=>{
- if(/\b(?:BPP|Bendahara Pengeluaran Pembantu)\s*(?:PNBP)\b/i.test(input))return 'PNBP';
- if(/\b(?:BPP|Bendahara Pengeluaran Pembantu)\s*(?:RM)\b/i.test(input))return 'RM';
+ if(/\b(?:BPP\s*PNBP|Bendahara\s+Pengeluaran\s+Pembantu[\s\S]{0,110}\bPNBP\b)/i.test(input))return 'PNBP';
+ if(/\b(?:BPP\s*RM|Bendahara\s+Pengeluaran\s+Pembantu[\s\S]{0,110}\bRM\b)/i.test(input))return 'RM';
  return null;
 };
 const individualName=(lines:string[]):string=>{
  const anchor=lines.findIndex(s=>/\bYang\s+menerima\b/i.test(s));
  if(anchor<0)return '';
  for(const line of lines.slice(anchor+1,anchor+8)){
-  if(/(?:Setuju Dibayar|Kuasa Pengguna Anggaran|Pejabat Pembuat Komitmen|Bendahara Pengeluaran|BBPK|NIP\b|Jumlah\b)/i.test(line))break;
+  if(/^Jumlah\s*:/i.test(line))continue;
+  if(/(?:Setuju Dibayar|Kuasa Pengguna Anggaran|Pejabat Pembuat Komitmen|Bendahara Pengeluaran|BBPK|NIP\b)/i.test(line))break;
   const candidate=line.trim().replace(/\s{2,}/g,' ');
   if(candidate.length>=4 && candidate.length<=110 && /[A-Za-z]/.test(candidate) && !/^\d+$/.test(candidate)){
    return candidate.replace(/[.,\s]+$/,'').trim();
@@ -105,7 +106,9 @@ function parseIndividualReceipt(input:string,lines:string[]):{
  const honorLine=lines.find(s=>/\bJumlah\s+honor\b/i.test(s))||'';
  const taxLine=lines.find(s=>/\b(?:Potong\s+PPh|Potongan\s+PPh|PPh\s+15%)\b/i.test(s))||'';
  const netLine=lines.find(s=>/\b(?:Bersih\s+diterima|Jumlah\s+diterima|Netto)\b/i.test(s))||'';
- const bruto=labeledAmount(lines,/\b(?:Jumlah\s+honor|Banyaknya\s+Uang|Jumlah\s*:\s*Rp)/i);
+ const bruto=labeledAmount(lines,/\bJumlah\s+honor\b/i)
+   ??labeledAmount(lines,/\bJumlah\s*:\s*Rp/i)
+   ??labeledAmount(lines,/\bBanyaknya\s+Uang\b/i);
  const pph=labeledAmount(lines,/\b(?:Potong\s+PPh|Potongan\s+PPh)\b/i);
  const netto=labeledAmount(lines,/\b(?:Bersih\s+diterima|Jumlah\s+diterima|Netto)\b/i);
  if(bruto===null || netto===null)return null; // no fictional amounts
