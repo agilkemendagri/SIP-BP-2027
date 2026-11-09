@@ -63,9 +63,9 @@ export const AuthPortal:React.FC=()=>{
    <section className="bg-white rounded-2xl border shadow-sm p-6">
     <h2 className="font-bold text-lg flex gap-2 items-center mb-5"><LockKeyhole size={22}/>Masuk SIP-BP</h2>
     <form onSubmit={login} className="space-y-4">
-     <label className="block text-sm font-medium">Username
+     <label className="block text-sm font-medium">Username atau email institusi
       <input required autoComplete="username" value={username} onChange={e=>setUsername(e.target.value)} maxLength={32}
-       className="block w-full border rounded-lg p-2.5 mt-1" placeholder="Username SIP-BP"/>
+       className="block w-full border rounded-lg p-2.5 mt-1" placeholder="Username BPP atau email Bendahara"/>
      </label>
      <label className="block text-sm font-medium">Password
       <input required type="password" autoComplete="current-password" value={password} onChange={e=>setPassword(e.target.value)}
