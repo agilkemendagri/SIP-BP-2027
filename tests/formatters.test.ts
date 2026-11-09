@@ -3,11 +3,11 @@ import { csvEscapeCell, terbilang, formatTanggalIndo } from "../src/utils/format
 
 describe("CSV export keamanan dan kompatibilitas Excel", () => {
   it("mencegah formula yang disisipkan lewat nama penerima", () => {
-    expect(csvEscapeCell("=HYPERLINK(\"https://example.invalid\")")).toStartWith("\"'=");
+    expect(csvEscapeCell("=HYPERLINK(\"https://example.invalid\")").startsWith("\"'=")).toBe(true);
     expect(csvEscapeCell("+SUM(1,2)")).toBe("\"'+SUM(1,2)\"");
     expect(csvEscapeCell("-2+3")).toBe("\"'-2+3\"");
     expect(csvEscapeCell("@SUM(1)")).toBe("\"'@SUM(1)\"");
-    expect(csvEscapeCell(" \t=1+2")).toStartWith("\"' ");
+    expect(csvEscapeCell(" \t=1+2").startsWith("\"' ")).toBe(true);
   });
   it("menjaga nilai numeric dan teks biasa", () => {
     expect(csvEscapeCell(950000)).toBe("\"950000\"");
