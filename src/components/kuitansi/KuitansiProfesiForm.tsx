@@ -187,7 +187,7 @@ export const KuitansiProfesiForm: React.FC = () => {
   // Reaktif terhadap perubahan editingTransaksi (misal saat dibuka dari Daftar Transaksi)
   useEffect(() => {
     if (editingTransaksi && editingTransaksi.jenisKuitansi === 'jasa_profesi') {
-      setTanggalKuitansi(editingTransaksi.tanggalKuitansi || '2026-09-01');
+      setTanggalKuitansi(editingTransaksi.tanggalKuitansi || new Date().toISOString().slice(0,10));
       setSumberDana(editingTransaksi.sumberDana || 'PNBP');
       setKodeAkun(editingTransaksi.kodeAkun || '522151');
       setKegiatan(editingTransaksi.kegiatan || '');
