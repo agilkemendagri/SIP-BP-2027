@@ -41,6 +41,8 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleMobileMenu }) => {
         return 'Daftar Transaksi Pengeluaran';
       case 'rekap':
         return 'Rekapitulasi Belanja & Ekspor';
+      case 'ekstraktor':
+        return 'Ekstraktor Kuitansi dari Luar Sistem';
       case 'pengguna':
         return 'Manajemen Akun BPP & Pengguna';
       default:
