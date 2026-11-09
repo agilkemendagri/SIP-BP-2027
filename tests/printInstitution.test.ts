@@ -1,3 +1,4 @@
+import {isCollectiveReceipt} from "../src/utils/receiptKind";
 import { describe, it, expect } from "bun:test";
 import { readFileSync } from "node:fs";
 
@@ -30,5 +31,17 @@ describe("Buka di Tab Baru tanpa kehilangan sesi cetak", () => {
     expect(kuitansi).toContain("onClick={preparePrintData}");
     expect(standalone).toContain("if (window.opener) window.opener = null;");
     expect(standalone).toContain("const rows = await fetchFinancialTransactions()");
+  });
+});
+
+describe("Klasifikasi cetak individual vs kolektif",()=>{
+  it("dua sesi untuk satu nama tetap individual",()=>{
+    expect(isCollectiveReceipt([{nama:"Pegawai Uji"},{nama:"Pegawai Uji"}])).toBe(false);
+  });
+  it("dua penerima berbeda adalah kolektif",()=>{
+    expect(isCollectiveReceipt([{nama:"Pegawai Satu"},{nama:"Pegawai Dua"}])).toBe(true);
+  });
+  it("satu penerima selalu individual",()=>{
+    expect(isCollectiveReceipt([{nama:"Pegawai Uji"}])).toBe(false);
   });
 });
