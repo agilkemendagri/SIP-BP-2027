@@ -49,6 +49,8 @@ export const KuitansiExtractorView:React.FC=()=>{
   setRows(parsed.rows);
   setWarnings(parsed.warnings);
   setDate(parsed.tanggalKuitansi);
+  // A PNBP/RM marking is a suggestion only, not proof of funding.
+  if(parsed.suggestedSource && currentRole==='bendahara')setSource(parsed.suggestedSource);
   setAccount(parsed.kodeAkun);
   setActivity(parsed.kegiatan);
   setSourceNumber(parsed.nomorAsal);
@@ -166,6 +168,10 @@ export const KuitansiExtractorView:React.FC=()=>{
   </div>
   {error&&<p role="alert" className="bg-red-50 border border-red-300 rounded-lg p-3 text-sm text-red-800">{error}</p>}
   {imported&&<div className="space-y-4">
+   <section className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 text-sm text-slate-800">
+    <strong>Format terdeteksi: {parseReceiptText(text).documentKind==='individual'?'Kuitansi individual (1 penerima)':parseReceiptText(text).documentKind==='collective'?'Kuitansi kolektif':'Belum dikenali'}</strong>
+    <p className="text-xs mt-1">Sumber dana yang terindikasi: {parseReceiptText(text).suggestedSource||'belum diketahui'}. Periksa dokumen asli; penetapan sumber dana tetap menjadi tanggung jawab pengguna.</p>
+   </section>
    {warnings.length>0&&<section className="bg-amber-50 border border-amber-200 rounded-xl p-4">
     <h3 className="font-bold text-sm flex items-center gap-2 text-amber-900"><AlertTriangle size={16}/>Hal yang harus diperiksa</h3>
     <ul className="mt-2 list-disc pl-5 text-xs text-amber-900 space-y-1">{warnings.map((w,i)=><li key={i}>{w}</li>)}</ul>
