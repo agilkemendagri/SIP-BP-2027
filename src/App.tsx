@@ -4,6 +4,8 @@
  */
 
 import React, { useState } from 'react';
+import { AuthPortal } from './components/AuthPortal';
+import { isDevAuthConfigured } from './lib/sipBpAuth';
 import { AppProvider, useApp } from './context/AppContext';
 import { Sidebar } from './components/layout/Sidebar';
 import { Navbar } from './components/layout/Navbar';
@@ -77,6 +79,7 @@ const AppContent: React.FC = () => {
 };
 
 export default function App() {
+  if (isDevAuthConfigured) return <AuthPortal />;
   return (
     <AppProvider>
       <AppContent />
