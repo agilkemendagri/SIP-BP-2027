@@ -61,3 +61,12 @@ body {
     page-break-inside: avoid;
   }
 }
+
+/* Cetakan perincian biaya SPPD Rampung */
+.sppd-rampung-sheet { margin-left:auto; margin-right:auto; }
+@media print {
+  .sppd-rampung-sheet { width: 100% !important; min-height: auto !important; padding: 0 !important; box-shadow: none !important; }
+  .sppd-rampung-sheet .sppd-signatures,
+  .sppd-rampung-sheet .sppd-rampung-calc { break-inside: avoid; page-break-inside: avoid; }
+  .sppd-rampung-sheet td, .sppd-rampung-sheet th { overflow-wrap: anywhere; }
+}

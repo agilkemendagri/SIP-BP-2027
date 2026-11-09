@@ -16,6 +16,7 @@ interface BiayaItem {
   volume: number;
   satuan: string;
   tarifSatuan: number;
+  keterangan?: string;
 }
 
 export const KuitansiPerjadinLuarKotaForm: React.FC = () => {
@@ -38,6 +39,11 @@ export const KuitansiPerjadinLuarKotaForm: React.FC = () => {
   const [suratTugasNomor, setSuratTugasNomor] = useState<string>('ST-088/BBPKAIV/03/2026');
   const [tanggalTugas, setTanggalTugas] = useState<string>('2026-03-24 s.d. 2026-03-26');
   const [kotaAsal, setKotaAsal] = useState<string>('Jakarta');
+  const [nomorSPPD, setNomorSPPD] = useState('');
+  const [tanggalSPPD, setTanggalSPPD] = useState('');
+  const [sudahDibayarSemula, setSudahDibayarSemula] = useState(0);
+  const [kotaTandaTangan, setKotaTandaTangan] = useState('Makassar');
+  const [tanggalTandaTangan, setTanggalTandaTangan] = useState('');
   const [kotaTujuan, setKotaTujuan] = useState<string>('Surabaya, Jawa Timur');
 
   // Identitas Pelaksana
@@ -139,6 +145,11 @@ export const KuitansiPerjadinLuarKotaForm: React.FC = () => {
       return;
     }
 
+    if (sudahDibayarSemula < 0 || sudahDibayarSemula > totalBruto) {
+      showToast('Pembayaran sebelumnya harus antara Rp0 dan nilai bruto.', 'warning');
+      return;
+    }
+
     // Convert biayaItems to PenerimaItem list
     const penerimaList: PenerimaItem[] = biayaItems.map((item, idx) => {
       const itemBruto = item.volume * item.tarifSatuan;
@@ -189,6 +200,8 @@ export const KuitansiPerjadinLuarKotaForm: React.FC = () => {
       tanggalTugas,
       kotaAsal,
       kotaTujuan,
+      nomorSPPD, tanggalSPPD, sudahDibayarSemula, kotaTandaTangan, tanggalTandaTangan: tanggalTandaTangan || tanggalKuitansi,
+      keteranganBiaya: biayaItems.map(item => item.keterangan || ''),
     });
 
     setActiveView('transaksi');
@@ -352,6 +365,18 @@ export const KuitansiPerjadinLuarKotaForm: React.FC = () => {
           </div>
         </div>
 
+        <div className="border border-blue-100 bg-blue-50/40 rounded-lg p-4 space-y-3">
+          <h3 className="text-xs font-bold text-blue-900">Data Lampiran SPPD & Perhitungan Rampung</h3>
+          <p className="text-xs text-slate-500">Nomor SPPD berbeda dari nomor Surat Tugas. Nilai pembayaran sebelumnya default Rp0.</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <label className="text-xs font-semibold">Nomor SPPD<input className="mt-1 w-full border rounded p-2 font-normal" value={nomorSPPD} onChange={e => setNomorSPPD(e.target.value)} placeholder="Contoh: 0741/SPD/.../2026" /></label>
+            <label className="text-xs font-semibold">Tanggal SPPD<input type="date" className="mt-1 w-full border rounded p-2 font-normal" value={tanggalSPPD} onChange={e => setTanggalSPPD(e.target.value)} /></label>
+            <label className="text-xs font-semibold">Yang telah dibayar semula (Rp)<input type="number" min="0" className="mt-1 w-full border rounded p-2 font-normal" value={sudahDibayarSemula} onChange={e => setSudahDibayarSemula(Number(e.target.value))} /></label>
+            <div className="text-xs font-semibold">Sisa kurang/lebih<div className="mt-1 w-full border rounded p-2 font-bold bg-white">{formatRupiah(totalBruto - sudahDibayarSemula)}</div></div>
+            <label className="text-xs font-semibold">Tempat penandatanganan<input className="mt-1 w-full border rounded p-2 font-normal" value={kotaTandaTangan} onChange={e => setKotaTandaTangan(e.target.value)} /></label>
+            <label className="text-xs font-semibold">Tanggal penandatanganan<input type="date" className="mt-1 w-full border rounded p-2 font-normal" value={tanggalTandaTangan} onChange={e => setTanggalTandaTangan(e.target.value)} placeholder="Mengikuti tanggal kuitansi" /></label>
+          </div>
+        </div>
         {/* Section 2: Identitas Pelaksana */}
         <div>
           <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 pb-2 border-b border-slate-100">
@@ -508,6 +533,13 @@ export const KuitansiPerjadinLuarKotaForm: React.FC = () => {
                   />
                 </div>
 
+                <div className="sm:col-span-12">
+                  <label className="text-[10px] text-slate-600 block">Keterangan pada tabel cetak (opsional)</label>
+                  <input type="text" value={item.keterangan || ''}
+                    onChange={e => handleUpdateItem(item.id, { keterangan: e.target.value })}
+                    className="w-full px-2 py-1.5 rounded border border-slate-300 bg-white"
+                    placeholder="Contoh: CGK–UPG atau nomor bukti" />
+                </div>
                 <div className="sm:col-span-1 flex justify-end pt-3 sm:pt-0">
                   <button
                     type="button"

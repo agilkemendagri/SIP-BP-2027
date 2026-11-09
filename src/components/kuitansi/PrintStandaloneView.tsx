@@ -6,6 +6,7 @@
 import React, { useEffect, useState } from 'react';
 import { TandaTerimaIndividual } from './templates/TandaTerimaIndividual';
 import { TandaTerimaKolektif } from './templates/TandaTerimaKolektif';
+import { PerincianBiayaSppdRampung } from './templates/PerincianBiayaSppdRampung';
 import { Printer, Download, ArrowLeft, CheckCircle2, AlertCircle } from 'lucide-react';
 import { exportElementToPdf } from '../../utils/pdfGenerator';
 import { formatTanggalIndo } from '../../utils/formatters';
@@ -164,7 +165,9 @@ export const PrintStandaloneView: React.FC = () => {
             isKolektif ? 'print-landscape w-[297mm]' : 'print-portrait w-[210mm]'
           }`}
         >
-          {isKolektif ? (
+          {data.jenisKuitansi === 'perjadin_luar_kota' ? (
+            <PerincianBiayaSppdRampung transaksi={data} />
+          ) : isKolektif ? (
             <TandaTerimaKolektif
               namaInstansiPanjang={data.namaSatkerPanjang}
               namaInstansiPendek={data.namaSatkerPendek}

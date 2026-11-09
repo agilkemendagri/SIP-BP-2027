@@ -63,6 +63,12 @@ export interface Transaksi {
   tanggalTugas?: string;
   kotaAsal?: string;
   kotaTujuan?: string;
+  nomorSPPD?: string;
+  tanggalSPPD?: string;
+  sudahDibayarSemula?: number;
+  keteranganBiaya?: string[];
+  kotaTandaTangan?: string;
+  tanggalTandaTangan?: string;
   createdAt: string;
   updatedAt: string;
 }
