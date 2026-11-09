@@ -29,7 +29,7 @@ interface SidebarProps {
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, setMobileOpen }) => {
-  const { activeView, setActiveView, currentRole, resetToDefaultData } = useApp();
+  const { activeView, setActiveView, currentRole } = useApp();
   const [kuitansiExpanded, setKuitansiExpanded] = useState<boolean>(() => {
     return activeView.startsWith('kuitansi_');
   });
@@ -225,18 +225,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, setMobileOpen }) =
           <div className="flex items-center justify-between text-[11px] text-slate-400">
             <span className="flex items-center gap-1.5 font-medium">
               <ShieldCheck className="w-3.5 h-3.5 text-blue-400" />
-              Simulasi Lokal SIP-BP
+              Data Supabase DEV
             </span>
-            <button
-              onClick={resetToDefaultData}
-              title="Reset data ke bawaan awal"
-              className="p-1 text-slate-400 hover:text-slate-200 rounded hover:bg-slate-800 transition-colors"
-            >
-              <RotateCcw className="w-3.5 h-3.5" />
-            </button>
+
           </div>
           <div className="text-[10px] text-slate-500 leading-tight">
-            Tahun Anggaran Berjalan 2026. Data tersimpan di peramban lokal.
+            Transaksi tersimpan di database. Penggunaan terbatas untuk pengujian.
           </div>
         </div>
       </aside>
