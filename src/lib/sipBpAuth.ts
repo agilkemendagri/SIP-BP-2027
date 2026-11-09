@@ -142,3 +142,23 @@ export async function signOut() {
   save(null);
   if(token) {try {await request("/auth/v1/logout",{method:"POST"},token);} catch {/* local session already cleared */}}
 }
+
+/** Update only the authenticated Bendahara's own identity fields.
+ * Permissions and field validation are enforced independently by the server RPC.
+ */
+export async function updateBendaharaProfile(fields:{nama_lengkap:string;nip:string;jabatan:string}):Promise<SipProfile> {
+ const token=await sessionToken();
+ if(!token) throw new Error("Sesi login berakhir. Silakan login kembali.");
+ const nama=fields.nama_lengkap.trim();
+ const nip=fields.nip.trim();
+ const jabatan=fields.jabatan.trim();
+ if(nama.length<3||nama.length>160) throw new Error("Nama lengkap harus 3–160 karakter.");
+ if(nip && !/^\\d{18}$/.test(nip)) throw new Error("NIP harus 18 digit angka atau kosong.");
+ if(jabatan.length<3||jabatan.length>160) throw new Error("Jabatan harus 3–160 karakter.");
+ await request("/rest/v1/rpc/sip_bp_update_own_profile",{
+  method:"POST",body:JSON.stringify({p_nama_lengkap:nama,p_nip:nip,p_jabatan:jabatan})
+ },token);
+ const updated=await ownProfile();
+ if(!updated || updated.role!=="bendahara")throw new Error("Profil berhasil disimpan, tetapi tidak dapat dimuat ulang. Silakan login ulang.");
+ return updated;
+}
