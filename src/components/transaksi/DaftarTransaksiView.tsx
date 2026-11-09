@@ -38,6 +38,8 @@ export const DaftarTransaksiView: React.FC = () => {
     setPreviewSptb,
     deleteTransaksi,
     finalizeTransaksi,
+    returnToDraft,
+    toggleSaktiSingle,
     setEditingTransaksi,
     setActiveView,
     selectedForSaktiIds,
@@ -160,49 +162,21 @@ export const DaftarTransaksiView: React.FC = () => {
     }
   };
 
-  // Export Excel simulation
+  // Each recipient/detail is a separate export row; applied filters are respected.
   const handleExportExcel = () => {
     const headers = [
-      'No. SPTB',
-      'No. Kuitansi',
-      'Tanggal Bukti',
-      'Sumber Dana',
-      'Kode Akun',
-      'Nama Akun',
-      'Kegiatan',
-      'Penerima / Rincian',
-      'Uraian Pembayaran',
-      'Total Bruto (Rp)',
-      'Total PPN (Rp)',
-      'Total PPh (Rp)',
-      'Total Netto (Rp)',
-      'Status Transaksi',
-      'Status SAKTI',
-      'Tanggal SAKTI',
+      "Nomor SPTB","Tanggal Bukti","Sumber Dana","Kode Akun","Nama Akun","Kegiatan",
+      "Penerima","NIP / NIK","Uraian Rincian","Volume","Satuan","Tarif Satuan",
+      "Bruto (Rp)","PPN (Rp)","PPh (Rp)","Netto (Rp)","Status","Sudah SAKTI","Tanggal SAKTI"
     ];
-
-    const rows = sortedData.map(t => [
-      t.nomorSPTB,
-      t.nomorKuitansi,
-      t.tanggalKuitansi,
-      t.sumberDana,
-      t.kodeAkun,
-      t.namaAkun,
-      t.kegiatan,
-      t.ringkasanPenerima,
-      t.uraian,
-      t.totalBruto,
-      t.totalPPN,
-      t.totalPPh,
-      t.totalNetto,
-      t.status,
-      t.sudahSakti ? 'Sudah Digunakan di SAKTI' : 'Belum Digunakan di SAKTI',
-      t.tanggalSakti || '-',
-    ]);
-
-    const timestamp = new Date().toISOString().split('T')[0];
-    downloadCSV(`Daftar_Transaksi_SIP_BP_${timestamp}.csv`, headers, rows);
-    showToast(`Data transaksi (${sortedData.length} baris) berhasil diekspor ke Excel/CSV.`, 'success');
+    const rows = sortedData.flatMap(t => t.penerimaList.map(p => [
+      t.nomorSPTB,t.tanggalKuitansi,t.sumberDana,t.kodeAkun,t.namaAkun,t.kegiatan,
+      p.nama,p.nip||"",p.uraianItem,p.volume,p.satuan,p.tarifSatuan,
+      p.bruto,p.ppnNominal,p.pphNominal,p.netto,t.status,
+      t.sudahSakti?"Ya":"Tidak",t.tanggalSakti||""
+    ]));
+    downloadCSV("Daftar_Transaksi_SIP_BP_"+new Date().toISOString().slice(0,10)+".csv",headers,rows);
+    showToast("Sebanyak "+rows.length+" rincian berhasil diekspor (CSV dapat dibuka Excel).","success");
   };
 
   const eligibleSelectedCount = selectedForSaktiIds.filter(id => {
@@ -557,7 +531,7 @@ export const DaftarTransaksiView: React.FC = () => {
                           </button>
 
                           {/* Tombol Buka / Ubah jika belum dikunci di SAKTI */}
-                          {!isLocked && (
+                          {!isLocked && trx.status === 'Draft' && trx.jenisKuitansi === 'jasa_profesi' && (
                             <button
                               onClick={() => {
                                 setEditingTransaksi(trx);
@@ -569,7 +543,7 @@ export const DaftarTransaksiView: React.FC = () => {
                                   setActiveView('kuitansi_dalam_kota');
                                 }
                               }}
-                              title={trx.status === 'Draft' ? 'Buka & Edit Draft' : 'Ubah Data Transaksi'}
+                              title="Ubah Draft Jasa Profesi"
                               className="p-1 text-slate-600 hover:text-amber-600 hover:bg-amber-50 rounded"
                             >
                               <Edit3 className="w-3.5 h-3.5" />
@@ -587,8 +561,20 @@ export const DaftarTransaksiView: React.FC = () => {
                             </button>
                           )}
 
+                          {trx.status === "Final" && !isLocked && (
+                            <button title="Kembali ke Draft untuk koreksi" onClick={()=>{
+                              if(window.confirm("Kembalikan SPTB "+trx.nomorSPTB+" ke Draft?"))returnToDraft(trx.id).catch(()=>{});
+                            }} className="text-xs text-amber-700 bg-amber-50 px-2 py-1 rounded">Ke Draft</button>
+                          )}
+                          {trx.status === "Final" && (
+                            <button title={isLocked?"Buka kunci SAKTI (wajib alasan)":"Tandai digunakan di SAKTI"} onClick={()=>{
+                              if(isLocked || window.confirm("Tandai "+trx.nomorSPTB+" digunakan di SAKTI?"))toggleSaktiSingle(trx.id).catch(()=>{});
+                            }} className="text-xs text-blue-700 bg-blue-50 px-2 py-1 rounded">
+                              {isLocked?"Buka SAKTI":"Tandai SAKTI"}
+                            </button>
+                          )}
                           {/* Tombol Hapus jika belum SAKTI */}
-                          {!isLocked ? (
+                          {!isLocked && trx.status === 'Draft' ? (
                             <button
                               onClick={() => {
                                 if (window.confirm(`Hapus transaksi ${trx.nomorSPTB}?`)) {
