@@ -4,6 +4,7 @@
  */
 
 import React, { useEffect, useState } from 'react';
+import { isCollectiveReceipt } from '../../utils/receiptKind';
 import { TandaTerimaIndividual } from './templates/TandaTerimaIndividual';
 import { TandaTerimaKolektif } from './templates/TandaTerimaKolektif';
 import { Printer, Download, ArrowLeft, CheckCircle2, AlertCircle } from 'lucide-react';
@@ -33,7 +34,7 @@ export const PrintStandaloneView: React.FC = () => {
           const rows = await fetchFinancialTransactions();
           const trx = rows.find(t=>t.id===trxId);
           if(!trx) throw new Error("Dokumen tidak ditemukan atau akses ditolak.");
-          if(active)setData({...trx,mode:trx.penerimaList.length>1 && new Set(trx.penerimaList.map(p=>p.nama)).size>1?"KOLEKTIF":"INDIVIDUAL"});
+          if(active)setData({...trx,mode:isCollectiveReceipt(trx.penerimaList)?"KOLEKTIF":"INDIVIDUAL"});
         }else if(stored) {
           if(active)setData(JSON.parse(stored));
         }else throw new Error("Data cetak tidak ditemukan. Kembali ke daftar transaksi.");
