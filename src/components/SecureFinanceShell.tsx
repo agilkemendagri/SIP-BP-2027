@@ -1,4 +1,5 @@
 import React,{useState} from "react";
+import {sipBpEnvironmentLabel,isProductionEnvironment} from "../lib/sipBpEnvironment";
 import type { SipProfile } from "../lib/sipBpAuth";
 import {AppProvider,useApp} from "../context/AppContext";
 import {Sidebar} from "./layout/Sidebar";
@@ -27,7 +28,7 @@ function Content(){
    <Navbar onToggleMobileMenu={()=>setMobileMenuOpen(v=>!v)}/>
    <main className="flex-1 p-4 sm:p-6 max-w-7xl w-full mx-auto">
     <div className="flex justify-between items-center mb-3 text-xs text-slate-600">
-      <span>SIP-BP DEV · Data tersimpan di Supabase · Nomor SPTB dibuat server</span>
+      <span>SIP-BP {sipBpEnvironmentLabel} · Data tersimpan di Supabase · Nomor SPTB dibuat server</span>
       <button onClick={()=>refreshTransaksi().catch(()=>{})} className="flex items-center gap-1 text-blue-700" disabled={loadingTransaksi}>
         <RefreshCcw size={14}/>{loadingTransaksi?"Memuat data...":"Muat ulang"}
       </button>
@@ -43,7 +44,7 @@ function Content(){
     {activeView==="pengguna"&&<PenggunaView/>}
    </main>
    <footer className="text-xs text-slate-500 border-t border-slate-200 py-4 px-6 text-center">
-    SIP-BP · BBPKA PDN IV · Lingkungan pengembangan · Bukan untuk data keuangan riil
+    SIP-BP · BBPKA PDN IV · {isProductionEnvironment ? "Sistem Bendahara Pengeluaran" : "Lingkungan pengembangan · Bukan untuk data keuangan riil"}
    </footer>
   </div>
   <PilihJenisKuitansiModal/><KuitansiPrintModal/><SptbPrintModal/><BulkSaktiModal/><ToastContainer/>
