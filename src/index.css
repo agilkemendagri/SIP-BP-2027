@@ -132,3 +132,32 @@ body {
   }
   .sppd-print-paper .sppd-rampung-sheet table { width: 100% !important; }
 }
+
+/* Perbaikan khusus jalur Ctrl+P / Save as PDF pada halaman cetak SPPD.
+   Kertas A4 portrait, satu sistem margin, dan ukuran dokumen mengikuti area cetak. */
+@media print {
+  @page { size: A4 portrait; margin: 12mm 14mm; }
+  .sppd-print-container, .sppd-print-paper {
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    transform: none !important;
+    zoom: 1 !important;
+    box-shadow: none !important;
+    border: none !important;
+  }
+  .sppd-print-paper .sppd-rampung-sheet {
+    page: auto !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    font-size: 11pt !important;
+    line-height: 1.4 !important;
+  }
+  .sppd-print-paper .sppd-rampung-sheet table { width: 100% !important; }
+  .sppd-print-paper .sppd-rampung-sheet th,
+  .sppd-print-paper .sppd-rampung-sheet td { font-size: inherit !important; }
+}
