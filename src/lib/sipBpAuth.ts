@@ -153,7 +153,7 @@ export async function updateBendaharaProfile(fields:{nama_lengkap:string;nip:str
  const nip=fields.nip.trim();
  const jabatan=fields.jabatan.trim();
  if(nama.length<3||nama.length>160) throw new Error("Nama lengkap harus 3–160 karakter.");
- if(nip && !/^\\d{18}$/.test(nip)) throw new Error("NIP harus 18 digit angka atau kosong.");
+ if(nip && !/^\d{18}$/.test(nip)) throw new Error("NIP harus 18 digit angka atau kosong.");
  if(jabatan.length<3||jabatan.length>160) throw new Error("Jabatan harus 3–160 karakter.");
  await request("/rest/v1/rpc/sip_bp_update_own_profile",{
   method:"POST",body:JSON.stringify({p_nama_lengkap:nama,p_nip:nip,p_jabatan:jabatan})
