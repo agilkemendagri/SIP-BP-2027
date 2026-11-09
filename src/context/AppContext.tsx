@@ -146,7 +146,9 @@ export const AppProvider:React.FC<{children:ReactNode;authenticatedProfile:SipPr
    if(t.sudahSakti) {
      const reason=window.prompt("Masukkan alasan pembukaan kunci SAKTI (minimal 10 karakter):");
      if(!reason)return;
-     await run(async()=>{await unlockFinancialSakti(id,reason);await refreshTransaksi();},
+     if(reason.trim().length<10){showToast("Alasan wajib minimal 10 karakter.","warning");return;}
+     if(!window.confirm("Buka kunci SAKTI "+t.nomorSPTB+"? Hanya lakukan jika penandaan keliru dan bukti belum dipakai di SAKTI. Alasan akan dicatat pada audit log."))return;
+     await run(async()=>{await unlockFinancialSakti(id,reason.trim());await refreshTransaksi();},
        "Kunci SAKTI dibuka. Alasan dicatat di audit log");
    }else await markSaktiBulk([id]);
  };
