@@ -99,7 +99,7 @@ export const terbilang = (n: number): string => {
  */
 export const csvEscapeCell = (value: string | number): string => {
   const raw = String(value ?? '');
-  const safe = typeof value === 'string' && /^[\\s\\u0000-\\u001f]*[=+\\-@]/u.test(raw)
+  const safe = typeof value === 'string' && /^[\s\u0000-\u001f]*[=+\-@]/u.test(raw)
     ? "'" + raw
     : raw;
   return '"' + safe.replace(/"/g, '""') + '"';
