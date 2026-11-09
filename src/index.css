@@ -11,7 +11,7 @@ body {
 
 @media print {
   @page {
-    size: A4 auto;
+    size: A4 portrait;
     margin: 8mm 12mm 8mm 12mm;
   }
 
@@ -69,4 +69,25 @@ body {
   .sppd-rampung-sheet .sppd-signatures,
   .sppd-rampung-sheet .sppd-rampung-calc { break-inside: avoid; page-break-inside: avoid; }
   .sppd-rampung-sheet td, .sppd-rampung-sheet th { overflow-wrap: anywhere; }
+}
+
+/* SPPD Rampung: template default A4 portrait, sesuai PDF referensi pengguna. */
+@page sppd-portrait { size: A4 portrait; margin: 10mm 12mm; }
+@media print {
+  .sppd-rampung-sheet {
+    page: sppd-portrait;
+    box-sizing: border-box !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    font-size: 11px !important;
+    line-height: 1.32 !important;
+  }
+  .sppd-rampung-sheet table { table-layout: fixed; }
+  .sppd-rampung-sheet tr,
+  .sppd-rampung-sheet .sppd-signatures,
+  .sppd-rampung-sheet .sppd-rampung-calc { break-inside: avoid !important; page-break-inside: avoid !important; }
+  .sppd-rampung-sheet .sppd-signatures:last-child { break-before: avoid !important; }
 }

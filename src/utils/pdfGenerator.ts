@@ -88,8 +88,8 @@ export async function exportElementToPdf(
   let renderWidth = printableWidth;
   let renderHeight = renderWidth / ratio;
 
-  // Single-page adjustment: if slightly taller than printable height (up to 25%), fit proportionally
-  if (renderHeight > printableHeight && renderHeight < printableHeight * 1.25) {
+  // Single-page adjustment: fit a near-A4 document without creating an almost blank second page
+  if (renderHeight > printableHeight && renderHeight <= printableHeight * 1.4) {
     renderHeight = printableHeight;
     renderWidth = renderHeight * ratio;
   }

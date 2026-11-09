@@ -69,7 +69,7 @@ export const KuitansiPrintModal: React.FC = () => {
 
       await exportElementToPdf(printAreaRef.current, {
         fileName,
-        orientation: isKolektif ? 'landscape' : 'portrait',
+        orientation: isJasaProfesi && isKolektif ? 'landscape' : 'portrait',
       });
       showToast('Berkas PDF resmi berhasil dibuat dan diunduh!', 'success');
     } catch (err: any) {
@@ -164,7 +164,7 @@ export const KuitansiPrintModal: React.FC = () => {
         <div className="max-h-[85vh] overflow-y-auto bg-slate-100 p-4 sm:p-6 print:p-0 print:m-0 print:bg-white print:max-h-none print:overflow-visible">
           <div
             ref={printAreaRef}
-            className={`bg-white shadow-md print:shadow-none mx-auto border border-slate-300 print:border-none ${isKolektif ? 'print-landscape' : 'print-portrait'}`}
+            className={`bg-white shadow-md print:shadow-none mx-auto border border-slate-300 print:border-none ${isJasaProfesi && isKolektif ? 'print-landscape' : 'print-portrait'}`}
           >
             {isJasaProfesi ? (
               isKolektif ? (

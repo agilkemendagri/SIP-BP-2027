@@ -65,7 +65,7 @@ export const PrintStandaloneView: React.FC = () => {
 
       await exportElementToPdf(printAreaRef.current, {
         fileName,
-        orientation: isKolektif ? 'landscape' : 'portrait',
+        orientation: data.jenisKuitansi === 'perjadin_luar_kota' ? 'portrait' : isKolektif ? 'landscape' : 'portrait',
       });
     } catch (err: any) {
       console.error('Download PDF error in standalone print view:', err);
@@ -124,7 +124,7 @@ export const PrintStandaloneView: React.FC = () => {
             <h1 className="font-bold text-xs sm:text-sm text-white flex items-center gap-2">
               <span>Halaman Khusus Cetak Tanda Terima Resmi</span>
               <span className="text-[10px] bg-blue-500/30 text-blue-300 border border-blue-400/40 px-1.5 py-0.5 rounded font-mono">
-                {isKolektif ? 'A4 Landscape (Kolektif)' : 'A4 Portrait (Individual)'}
+                {data.jenisKuitansi === 'perjadin_luar_kota' ? 'A4 Portrait (SPPD Rampung)' : isKolektif ? 'A4 Landscape (Kolektif)' : 'A4 Portrait (Individual)'}
               </span>
             </h1>
             <p className="text-[11px] text-slate-400">
@@ -162,7 +162,7 @@ export const PrintStandaloneView: React.FC = () => {
         <div
           ref={printAreaRef}
           className={`bg-white shadow-xl print:shadow-none border border-slate-300 print:border-none ${
-            isKolektif ? 'print-landscape w-[297mm]' : 'print-portrait w-[210mm]'
+            data.jenisKuitansi === 'perjadin_luar_kota' ? 'print-portrait w-[210mm]' : isKolektif ? 'print-landscape w-[297mm]' : 'print-portrait w-[210mm]'
           }`}
         >
           {data.jenisKuitansi === 'perjadin_luar_kota' ? (
