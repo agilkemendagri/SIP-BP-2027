@@ -102,7 +102,9 @@ const labeledAmount=(lines:string[],pattern:RegExp):number|null=>{
 function parseIndividualReceipt(input:string,lines:string[]):{
  row:ImportedRow;date:string;description:string;source:'RM'|'PNBP'|null;warnings:string[];
 }|null{
- if(!/\b(?:Banyaknya\s+Uang|Bersih\s+diterima|Jumlah\s+honor|Yang\s+menerima)\b/i.test(input))return null;
+ // Both a payment breakdown and a net-received line are required.
+ // Avoid classifying a collective table as individual merely because a signer says 'Yang menerima'.
+ if(!/\b(?:Jumlah\s+honor|Banyaknya\s+Uang)\b/i.test(input) || !/\b(?:Bersih\s+diterima|Jumlah\s+diterima)\b/i.test(input))return null;
  const honorLine=lines.find(s=>/\bJumlah\s+honor\b/i.test(s))||'';
  const taxLine=lines.find(s=>/\b(?:Potong\s+PPh|Potongan\s+PPh|PPh\s+15%)\b/i.test(s))||'';
  const netLine=lines.find(s=>/\b(?:Bersih\s+diterima|Jumlah\s+diterima|Netto)\b/i.test(s))||'';
