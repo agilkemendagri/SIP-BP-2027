@@ -34,75 +34,21 @@ export const KuitansiPerjadinDalamKotaForm: React.FC = () => {
   );
   const [kodeAkun, setKodeAkun] = useState<string>('524113'); // Belanja Perjadin Dalam Kota
   const [kegiatan, setKegiatan] = useState<string>(
-    'Pemeriksaan dan Verifikasi Standar Alat Ukur Pasar Tradisional Wilayah Kerja IV'
+    ''
   );
   const [uraian, setUraian] = useState<string>(
-    'Pembayaran Transport Lokal Perjalanan Dinas Dalam Kota Tim Pengawas Pasar (4 Petugas)'
+    ''
   );
 
-  const [suratTugasNomor, setSuratTugasNomor] = useState<string>('ST-091/BBPKAIV/03/2026');
-  const [tanggalTugas, setTanggalTugas] = useState<string>('2026-03-25');
-  const [kotaAsal, setKotaAsal] = useState<string>('Jakarta Pusat');
-  const [kotaTujuan, setKotaTujuan] = useState<string>('Wilayah Kota Bekasi');
+  const [suratTugasNomor, setSuratTugasNomor] = useState<string>('');
+  const [tanggalTugas, setTanggalTugas] = useState<string>('');
+  const [kotaAsal, setKotaAsal] = useState<string>('');
+  const [kotaTujuan, setKotaTujuan] = useState<string>('');
 
   // Collective recipients table
   const [recipients, setRecipients] = useState<RecipientRow[]>([
-    {
-      id: '1',
-      nama: 'Kurniawan Pratama, S.T.',
-      nip: '19880712 201101 1 003',
-      golongan: 'III/d',
-      jabatan: 'Ketua Tim Pemeriksa Metrologi',
-      uraianItem: 'Transport Lokal Pengawasan Pasar Bekasi',
-      volume: 1,
-      satuan: 'Org/Hari',
-      tarifSatuan: 150000,
-      pphRate: 0,
-      rekening: '1192837401',
-      bank: 'Bank Mandiri',
-    },
-    {
-      id: '2',
-      nama: 'Dina Kusuma, S.Si.',
-      nip: '19900405 201402 2 002',
-      golongan: 'III/c',
-      jabatan: 'Penera Terampil',
-      uraianItem: 'Transport Lokal Pengawasan Pasar Bekasi',
-      volume: 1,
-      satuan: 'Org/Hari',
-      tarifSatuan: 150000,
-      pphRate: 0,
-      rekening: '0382910293',
-      bank: 'BRI',
-    },
-    {
-      id: '3',
-      nama: 'Fajar Nugroho, A.Md.',
-      nip: '19940118 201801 1 001',
-      golongan: 'II/d',
-      jabatan: 'Pengawas Teknis Pengukuran',
-      uraianItem: 'Transport Lokal Pengawasan Pasar Bekasi',
-      volume: 1,
-      satuan: 'Org/Hari',
-      tarifSatuan: 150000,
-      pphRate: 0,
-      rekening: '5029102938',
-      bank: 'BTN',
-    },
-    {
-      id: '4',
-      nama: 'Budi Santoso',
-      nip: '19820520 200701 1 005',
-      golongan: 'II/c',
-      jabatan: 'Petugas Pengambil Sampel',
-      uraianItem: 'Transport Lokal Pengawasan Pasar Bekasi',
-      volume: 1,
-      satuan: 'Org/Hari',
-      tarifSatuan: 150000,
-      pphRate: 0,
-      rekening: '0091827364',
-      bank: 'Bank BJB',
-    },
+    {id:"1",nama:"",nip:"",golongan:"",jabatan:"",uraianItem:"",volume:1,
+     satuan:"Org/Hari",tarifSatuan:0,pphRate:0,rekening:"",bank:""}
   ]);
 
   // Aggregate Calculations
