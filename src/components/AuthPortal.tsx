@@ -1,4 +1,5 @@
 import React,{useEffect,useState} from "react";
+import {sipBpEnvironmentLabel,isProductionEnvironment} from "../lib/sipBpEnvironment";
 import {LockKeyhole,ShieldCheck,LogOut} from "lucide-react";
 import {type SipProfile,ownProfile,signInUsername,signOut,changeOwnPassword} from "../lib/sipBpAuth";
 import {SecureFinanceShell} from "./SecureFinanceShell";
@@ -41,7 +42,7 @@ export const AuthPortal:React.FC=()=>{
   if(new URLSearchParams(window.location.search).get("print")==="true")return <PrintStandaloneView/>;
   return <div>
    <div className="bg-slate-950 text-white px-4 py-2 text-xs flex items-center justify-between gap-3">
-    <span><ShieldCheck size={13} className="inline mr-1"/>SIP-BP DEV · @{profile.username} · {profile.role==="bendahara"?"RM + PNBP":profile.role==="bpp_rm"?"RM":"PNBP"}</span>
+    <span><ShieldCheck size={13} className="inline mr-1"/>SIP-BP {sipBpEnvironmentLabel} · @{profile.username} · {profile.role==="bendahara"?"RM + PNBP":profile.role==="bpp_rm"?"RM":"PNBP"}</span>
     <button type="button" onClick={logout} className="flex gap-1 items-center bg-slate-800 px-3 py-1.5 rounded-lg"><LogOut size={14}/>Keluar</button>
    </div>
    <SecureFinanceShell profile={profile}/>
@@ -49,13 +50,13 @@ export const AuthPortal:React.FC=()=>{
  }
  return <div className="min-h-screen bg-slate-100 text-slate-900">
   <header className="bg-slate-950 p-5 text-white">
-   <h1 className="font-bold text-xl">SIP-BP <span className="text-blue-300">DEV</span></h1>
+   <h1 className="font-bold text-xl">SIP-BP <span className="text-blue-300">{isProductionEnvironment ? "" : "DEV"}</span></h1>
    <p className="text-xs text-slate-300">Sistem Informasi Pencatatan Bendahara Pengeluaran · BBPKA PDN IV</p>
   </header>
   <main className="max-w-md mx-auto p-4 pt-10">
-   <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 mb-5 text-sm text-amber-900">
+   {!isProductionEnvironment && <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 mb-5 text-sm text-amber-900">
     Lingkungan pengembangan. Jangan masukkan data keuangan resmi sebelum sistem dinyatakan siap.
-   </div>
+   </div>}
    {error&&<p role="alert" className="rounded-lg border border-red-200 bg-red-50 text-red-800 p-3 mb-4">{error}</p>}
    {message&&<p role="status" className="rounded-lg border border-green-200 bg-green-50 text-green-800 p-3 mb-4">{message}</p>}
    {loading?<p>Memeriksa sesi...</p>:!profile?
