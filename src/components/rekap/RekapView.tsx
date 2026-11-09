@@ -44,7 +44,7 @@ export const RekapView: React.FC = () => {
   const daftarBulan = getDaftarBulan();
 
   // Filters
-  const [filterTahun, setFilterTahun] = useState<string>('2026');
+  const [filterTahun, setFilterTahun] = useState<string>(String(new Date().getFullYear()));
   const [filterBulan, setFilterBulan] = useState<string>('SEMUA');
   const [filterAkun, setFilterAkun] = useState<string>('SEMUA');
   const [filterSumberDana, setFilterSumberDana] = useState<string>('SEMUA');
@@ -270,8 +270,8 @@ export const RekapView: React.FC = () => {
             className="px-2.5 py-1.5 rounded-lg border border-slate-300 bg-slate-50 text-slate-700 text-xs focus:outline-none"
           >
             <option value="SEMUA">Semua Tahun</option>
-            <option value="2026">2026</option>
-            <option value="2025">2025</option>
+            {Array.from(new Set([new Date().getFullYear(),...allRekapRows.map(r=>Number(r.tanggalBukti.slice(0,4)))]))
+              .sort((a,b)=>b-a).map(year=><option key={year} value={String(year)}>{year}</option>)}
           </select>
 
           {/* Filter Bulan */}
@@ -361,13 +361,13 @@ export const RekapView: React.FC = () => {
         {/* Printable Letterhead (visible only when printing) */}
         <div className="hidden print-only p-4 border-b-2 border-slate-900 mb-3 text-center">
           <div className="text-xs uppercase font-bold tracking-wider">
-            BALAI BESAR PENGAWASAN KEUANGAN DAN ASET PERDAGANGAN DALAM NEGERI IV
+            BBPKA PDN IV — KEMENTERIAN DALAM NEGERI
           </div>
           <div className="text-sm font-bold uppercase underline mt-0.5">
             LEMBAR REKAPITULASI RINCIAN PEMBAYARAN BENDAHARA PENGELUARAN
           </div>
           <div className="text-[10px] text-slate-600 mt-0.5">
-            Tahun Anggaran 2026 · Dicetak: {new Date().toLocaleDateString('id-ID')}
+            Tahun Anggaran {filterTahun === 'SEMUA' ? 'Semua' : filterTahun} · Dicetak: {new Date().toLocaleDateString('id-ID')}
           </div>
         </div>
 
