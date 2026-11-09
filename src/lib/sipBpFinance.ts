@@ -74,10 +74,8 @@ export async function saveFinancialTransaction(data:Omit<Transaksi,"id"|"created
  delete payload.createdAt;delete payload.updatedAt;
  if(existingId) payload.id=existingId;
  else delete payload.id;
- const shouldFinalize=payload.status==="Final";
- delete payload.status;
+ // Server saves and optionally finalizes within a single database transaction.
  const id=await financeRpc("sip_bp_save_transaction",{payload});
- if(shouldFinalize) await financeRpc("sip_bp_change_status",{p_id:id,p_status:"Final"});
  return id as string;
 }
 export async function changeFinancialStatus(id:string,status:"Draft"|"Final") {
