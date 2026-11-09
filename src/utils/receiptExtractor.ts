@@ -6,7 +6,8 @@ export type ImportedRow={
 };
 export type ParsedReceipt={
  rows:ImportedRow[];tanggalKuitansi:string;kodeAkun:string;kegiatan:string;
- nomorAsal:string;totalBruto:number|null;totalPPN:number|null;totalPPh:number|null;totalNetto:number|null;
+ nomorAsal:string;documentKind:'individual'|'collective'|'unknown';suggestedSource:'RM'|'PNBP'|null;
+ totalBruto:number|null;totalPPN:number|null;totalPPh:number|null;totalNetto:number|null;
  warnings:string[];
 };
 const months:Record<string,string>={
@@ -14,15 +15,30 @@ const months:Record<string,string>={
  september:'09',oktober:'10',november:'11',desember:'12'
 };
 export const parseIdr=(s:string):number=>{
- const text=s.replace(/Rp\.?\s*/gi,'').replace(/\s/g,'');
+ const text=s.replace(/Rp\.?\s*/gi,'').replace(/\s/g,'').replace(/[^\d.,]/g,'');
  if(!text)return 0;
- // Indonesian amounts use groups of 3 digits for thousands, comma decimals.
- const clean=text.replace(/\./g,'').replace(/,/g,'.');
- const n=Number(clean);return Number.isFinite(n)?n:0;
+ const lastComma=text.lastIndexOf(','),lastDot=text.lastIndexOf('.');
+ let normalized=text;
+ if(lastComma>=0 && lastDot>=0){
+  const decimalMark=lastComma>lastDot?',':'.';
+  normalized=decimalMark===','?text.replace(/\./g,'').replace(',','.') :text.replace(/,/g,'');
+ }else if(lastComma>=0){
+  const parts=text.split(',');
+  normalized=parts.length>1 && parts.at(-1)?.length===3?parts.join(''):parts.length>1?parts.slice(0,-1).join('')+'.'+parts.at(-1):text;
+ }else if(lastDot>=0){
+  const parts=text.split('.');
+  normalized=parts.length>1 && parts.at(-1)?.length===3?parts.join(''):parts.length>1?parts.slice(0,-1).join('')+'.'+parts.at(-1):text;
+ }
+ const n=Number(normalized);
+ return Number.isFinite(n)?n:0;
 };
-const amountRe=/\b(?:Rp\.?\s*)?(\d{1,3}(?:\.\d{3})+(?:,\d{1,2})?|\d{4,}(?:,\d{1,2})?)\b/gi;
-const moneyMatches=(line:string)=>[...line.matchAll(amountRe)].map(m=>({value:parseIdr(m[1]),index:m.index??0,raw:m[0]})).filter(x=>x.value>=1000);
-const today=()=>new Date().toLocaleDateString('en-CA',{timeZone:'Asia/Jakarta'});
+// Supports accounting PDFs with 200,000 (comma thousands) and 200.000
+// (dot thousands), while retaining optional fractional currency amounts.
+const amountRe=/\b(?:Rp\.?\s*)?(\d{1,3}(?:[.,]\d{3})+(?:[.,]\d{1,2})?|\d{4,}(?:[.,]\d{1,2})?)\b/gi;
+const moneyMatches=(line:string)=>[...line.matchAll(amountRe)]
+ .map(m=>({value:parseIdr(m[1]),index:m.index??0,raw:m[0]}))
+ .filter(x=>x.value>=1000);
+
 const findDate=(s:string):string=>{
  const match=[...s.matchAll(/\b(\d{1,2})\s+(Januari|Februari|Maret|April|Mei|Juni|Juli|Agustus|September|Oktober|November|Desember)\s+(20\d\d)\b/gi)].at(-1);
  if(match){return match[3]+'-'+months[match[2].toLowerCase()]+'-'+match[1].padStart(2,'0');}
@@ -58,10 +74,90 @@ function parseLine(line:string,lastName:string,index:number):ImportedRow|null{
  return {id:'import-'+index,nama,uraianItem,volume:Math.max(1,volume),satuan:'JP',tarifSatuan:tariff,
  bruto,ppnNominal:0,pphNominal:pph,netto};
 }
+
+const sourceHint=(input:string):'RM'|'PNBP'|null=>{
+ if(/\b(?:BPP|Bendahara Pengeluaran Pembantu)\s*(?:PNBP)\b/i.test(input))return 'PNBP';
+ if(/\b(?:BPP|Bendahara Pengeluaran Pembantu)\s*(?:RM)\b/i.test(input))return 'RM';
+ return null;
+};
+const individualName=(lines:string[]):string=>{
+ const anchor=lines.findIndex(s=>/\bYang\s+menerima\b/i.test(s));
+ if(anchor<0)return '';
+ for(const line of lines.slice(anchor+1,anchor+8)){
+  if(/(?:Setuju Dibayar|Kuasa Pengguna Anggaran|Pejabat Pembuat Komitmen|Bendahara Pengeluaran|BBPK|NIP\b|Jumlah\b)/i.test(line))break;
+  const candidate=line.trim().replace(/\s{2,}/g,' ');
+  if(candidate.length>=4 && candidate.length<=110 && /[A-Za-z]/.test(candidate) && !/^\d+$/.test(candidate)){
+   return candidate.replace(/[.,\s]+$/,'').trim();
+  }
+ }
+ return '';
+};
+const labeledAmount=(lines:string[],pattern:RegExp):number|null=>{
+ const line=lines.find(s=>pattern.test(s));
+ if(!line)return null;
+ const amounts=moneyMatches(line);
+ return amounts.length?amounts.at(-1)!.value:null;
+};
+function parseIndividualReceipt(input:string,lines:string[]):{
+ row:ImportedRow;date:string;description:string;source:'RM'|'PNBP'|null;warnings:string[];
+}|null{
+ if(!/\b(?:Banyaknya\s+Uang|Bersih\s+diterima|Jumlah\s+honor|Yang\s+menerima)\b/i.test(input))return null;
+ const honorLine=lines.find(s=>/\bJumlah\s+honor\b/i.test(s))||'';
+ const taxLine=lines.find(s=>/\b(?:Potong\s+PPh|Potongan\s+PPh|PPh\s+15%)\b/i.test(s))||'';
+ const netLine=lines.find(s=>/\b(?:Bersih\s+diterima|Jumlah\s+diterima|Netto)\b/i.test(s))||'';
+ const bruto=labeledAmount(lines,/\b(?:Jumlah\s+honor|Banyaknya\s+Uang|Jumlah\s*:\s*Rp)/i);
+ const pph=labeledAmount(lines,/\b(?:Potong\s+PPh|Potongan\s+PPh)\b/i);
+ const netto=labeledAmount(lines,/\b(?:Bersih\s+diterima|Jumlah\s+diterima|Netto)\b/i);
+ if(bruto===null || netto===null)return null; // no fictional amounts
+ const volumeMatch=honorLine.match(/\b(\d{1,3})\s*(JP|OJ|OK|JPL|Hari|Jam|Paket|Kali)\b/i);
+ const unitPriceMatch=honorLine.match(/@\s*Rp\.?\s*([\d.,]+)/i);
+ const volume=volumeMatch?Number(volumeMatch[1]):1;
+ const satuan=volumeMatch?volumeMatch[2].toUpperCase():'JP';
+ const tariff=unitPriceMatch?parseIdr(unitPriceMatch[1]):volume>0?bruto/volume:bruto;
+ const name=individualName(lines);
+ const paymentIndex=lines.findIndex(s=>/\bUntuk\s+Pembayaran\b/i.test(s));
+ const paymentParts:string[]=[];
+ if(paymentIndex>=0){
+  const first=lines[paymentIndex].replace(/^.*?Untuk\s+Pembayaran\s*:\s*/i,'').trim();
+  if(first)paymentParts.push(first);
+  for(const line of lines.slice(paymentIndex+1,paymentIndex+5)){
+   if(/^(?:Jumlah\s+honor|Potong\s+PPh|Bersih\s+diterima|Makassar|Jumlah\s*:|Yang\s+menerima)\b/i.test(line))break;
+   paymentParts.push(line);
+  }
+ }
+ const description=paymentParts.join(' ').replace(/\s+terlampir\s+dengan\s+rincian\s*:\s*$/i,'').trim();
+ const warning:string[]=[];
+ if(!name)warning.push('Nama penerima individual belum dikenali; isi sesuai dokumen asli.');
+ if(!description)warning.push('Uraian pembayaran individual belum terbaca.');
+ if(!volumeMatch || !unitPriceMatch)warning.push('Volume atau tarif tidak lengkap; periksa rincian honor.');
+ if(pph===null)warning.push('Nominal potongan PPh belum ditemukan; periksa kolom pajak.');
+ if(Math.abs(bruto-(pph||0)-netto)>1)warning.push('Bruto, potongan PPh, dan bersih diterima tidak sesuai.');
+ if(Math.abs(volume*tariff-bruto)>1)warning.push('Volume × tarif tidak sesuai jumlah honor.');
+ const percent=taxLine.match(/\b(\d{1,2}(?:[.,]\d+)?)\s*%/);
+ if(percent && pph!==null && Math.abs(bruto*parseIdr(percent[1])/100-pph)>1){
+  warning.push('Persentase PPh pada dokumen berbeda dengan nominal pajak.');
+ }
+ return {row:{id:'import-individual-1',nama:name,uraianItem:description,volume,satuan,
+   tarifSatuan:tariff,bruto,ppnNominal:0,pphNominal:pph||0,netto},
+  date:findDate(lines.filter(s=>/\b(?:Makassar|Yang\s+menerima|Tanggal)\b/i.test(s)).join('\n'))||findDate(input),
+  description,source:sourceHint(input),warnings:warning};
+}
+
 export function parseReceiptText(text:string):ParsedReceipt{
  const input=text.replace(/\r/g,'').replace(/[\u00a0\u2007]/g,' ').trim();
  const lines=input.split(/\n+/).map(s=>s.replace(/\s+/g,' ').trim()).filter(Boolean);
  const warnings:string[]=[];
+ const individual=parseIndividualReceipt(input,lines);
+ if(individual){
+  const warnings=individual.warnings.slice();
+  if(!individual.date)warnings.push('Tanggal kuitansi tidak ditemukan; wajib diisi sebelum simpan.');
+  warnings.push('Kode akun belum tersedia pada dokumen individual; isi sesuai DIPA/POK, jangan menebak.');
+  if(individual.source)warnings.push('Sumber dana '+individual.source+' hanya indikasi dari nama Bendahara Pembantu; pastikan dengan dokumen.');
+  warnings.push('Nomor SPTB baru akan diterbitkan oleh SIP-BP setelah simpan Draft.');
+  return {rows:[individual.row],tanggalKuitansi:individual.date,kodeAkun:'',kegiatan:individual.description,
+   nomorAsal:'',documentKind:'individual',suggestedSource:individual.source,
+   totalBruto:individual.row.bruto,totalPPN:0,totalPPh:individual.row.pphNominal,totalNetto:individual.row.netto,warnings};
+ }
  const rows:ImportedRow[]=[];
  let lastName='';
  let active='';
@@ -106,5 +202,6 @@ export function parseReceiptText(text:string):ParsedReceipt{
    warnings.push('Jumlah netto hasil OCR tidak cocok dengan baris rincian.');
  warnings.push('Nomor kuitansi/SPTB asli tidak diimpor sebagai nomor resmi: SIP-BP menerbitkan nomor SPTB baru ketika Draft disimpan.');
  return {rows,tanggalKuitansi:findDate(input),kodeAkun,kegiatan:titleOrActivity(input),nomorAsal,
+ documentKind:rows.length?'collective':'unknown',suggestedSource:sourceHint(input),
  totalBruto,totalPPN:null,totalPPh,totalNetto,warnings};
 }
