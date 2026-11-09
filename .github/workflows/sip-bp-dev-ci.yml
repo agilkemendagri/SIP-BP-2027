@@ -2,6 +2,8 @@ name: SIP-BP DEV Typecheck and Build
 on:
   push:
     branches: [fitur-supabase-auth]
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 jobs:
   validate:
