@@ -2,6 +2,10 @@ import { sessionToken } from "./sipBpAuth";
 import type { Transaksi, PenerimaItem } from "../types";
 const root = (import.meta.env.VITE_SUPABASE_URL || "").replace(/\/$/,"");
 const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || "";
+/** HTTP error with a confirmed server response. Transport failures are not safe to retry for financial writes. */
+class SipBpHttpError extends Error {
+ constructor(message:string,public readonly status:number) {super(message);this.name="SipBpHttpError";}
+}
 async function api(path:string,options:RequestInit={}):Promise<any> {
  const token=await sessionToken();
  if(!token) throw new Error("Sesi login berakhir. Silakan login kembali.");
@@ -12,7 +16,7 @@ async function api(path:string,options:RequestInit={}):Promise<any> {
  const payload=await res.json().catch(()=>null);
  if(!res.ok) {
   const message=payload?.message||payload?.error_description||payload?.hint||payload?.error||"Layanan tidak tersedia";
-  throw new Error(String(message));
+  throw new SipBpHttpError(String(message),res.status);
  }
  return payload;
 }
@@ -129,7 +133,12 @@ export async function bulkMarkFinancialSakti(ids:string[]):Promise<SaktiBatchRep
  try {
    await financeRpc("sip_bp_mark_sakti",{p_ids:ids});
    return {succeeded:[...ids],failed:[]};
- } catch {
+ } catch(err) {
+   // Retrying an ambiguous network/server failure can re-submit a successful
+   // request after the response was lost. Only confirmed client/business
+   // rejections are eligible for per-item fallback.
+   if(!(err instanceof SipBpHttpError) || ![400,403,404,409,422].includes(err.status))
+     throw err;
    const succeeded:string[]=[];
    const failed:SaktiBatchReport["failed"]=[];
    for(const id of ids) {
