@@ -4,7 +4,7 @@ import type { SipProfile } from "../lib/sipBpAuth";
 import {listProfiles} from "../lib/sipBpAuth";
 import {
  fetchFinancialTransactions,saveFinancialTransaction,changeFinancialStatus,
- deleteFinancialTransaction,bulkMarkFinancialSakti,unlockFinancialSakti
+ deleteFinancialTransaction,bulkMarkFinancialSakti,unlockFinancialSakti,type SaktiBatchReport
 } from "../lib/sipBpFinance";
 
 export type ActiveView="dashboard"|"kuitansi_profesi"|"kuitansi_luar_kota"|"kuitansi_dalam_kota"|"sptb"|"transaksi"|"rekap"|"pengguna";
@@ -27,6 +27,7 @@ interface AppContextType {
  updateTransaksi:(id:string,updates:Partial<Transaksi>)=>Promise<void>;
  deleteTransaksi:(id:string)=>Promise<boolean>;
  markSaktiBulk:(ids:string[])=>Promise<void>;
+ saktiBatchReport:SaktiBatchReport|null;
  toggleSaktiSingle:(id:string)=>Promise<void>;
  finalizeTransaksi:(id:string)=>Promise<void>;
  returnToDraft:(id:string)=>Promise<void>;
@@ -66,6 +67,7 @@ export const AppProvider:React.FC<{children:ReactNode;authenticatedProfile:SipPr
  const [isCreateKuitansiModalOpen,setIsCreateKuitansiModalOpen]=useState(false);
  const [selectedForSaktiIds,setSelectedForSaktiIds]=useState<string[]>([]);
  const [isBulkSaktiModalOpen,setIsBulkSaktiModalOpen]=useState(false);
+ const [saktiBatchReport,setSaktiBatchReport]=useState<SaktiBatchReport|null>(null);
  const [toasts,setToasts]=useState<ToastMessage[]>([]);
  const showToast=useCallback((message:string,type:ToastMessage["type"]="info")=>{
    const id=crypto.randomUUID();
@@ -136,9 +138,23 @@ export const AppProvider:React.FC<{children:ReactNode;authenticatedProfile:SipPr
    await run(async()=>{await changeFinancialStatus(id,"Draft");await refreshTransaksi();},"SPTB dikembalikan ke Draft");
  };
  const markSaktiBulk=async(ids:string[])=>{
-   await run(async()=>{await bulkMarkFinancialSakti(ids);await refreshTransaksi();
-    setSelectedForSaktiIds([]);setIsBulkSaktiModalOpen(false);},
-    "Transaksi berhasil ditandai digunakan di SAKTI");
+   setSaktiBatchReport(null);
+   try {
+     const report=await bulkMarkFinancialSakti(ids);
+     setSaktiBatchReport(report);
+     await refreshTransaksi();
+     setSelectedForSaktiIds(report.failed.map(item=>item.id));
+     if(report.failed.length) {
+       setIsBulkSaktiModalOpen(true);
+       showToast(report.succeeded.length+" berhasil; "+report.failed.length+" gagal. Periksa daftar hasil.","warning");
+     }else {
+       setIsBulkSaktiModalOpen(false);
+       showToast(report.succeeded.length+" SPTB berhasil ditandai di SAKTI.","success");
+     }
+   }catch(err) {
+     showToast(err instanceof Error?err.message:"Penandaan SAKTI gagal","error");
+     throw err;
+   }
  };
  const toggleSaktiSingle=async(id:string)=>{
    const t=allTransaksi.find(x=>x.id===id);
@@ -162,7 +178,7 @@ export const AppProvider:React.FC<{children:ReactNode;authenticatedProfile:SipPr
    addUser,updateUser,resetToDefaultData,previewKuitansi,setPreviewKuitansi,previewSptb,setPreviewSptb,
    editingTransaksi,setEditingTransaksi,isCreateKuitansiModalOpen,setIsCreateKuitansiModalOpen,
    startNewKuitansi,generateNextTransactionNumbers,selectedForSaktiIds,setSelectedForSaktiIds,
-   isBulkSaktiModalOpen,setIsBulkSaktiModalOpen,toasts,showToast,removeToast
+   isBulkSaktiModalOpen,setIsBulkSaktiModalOpen,saktiBatchReport,toasts,showToast,removeToast
  }}>{children}</C.Provider>;
 };
 export function useApp():AppContextType{
