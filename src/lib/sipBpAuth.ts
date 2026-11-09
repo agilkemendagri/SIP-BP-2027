@@ -1,11 +1,11 @@
 /**
- * SIP-BP DEV - Thin Supabase Auth REST adapter.
+ * SIP-BP - Thin Supabase Auth REST adapter for DEV and PROD.
  * No secret/service-role keys in this browser module.
  * Session persisted in sessionStorage only (cleared when browser session ends).
  */
 const url = (import.meta.env.VITE_SUPABASE_URL || "").replace(/\/$/, "");
 const publishableKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || "";
-const storageKey = "sip_bp_dev_auth_v1";
+const storageKey = (import.meta.env.VITE_SIP_BP_ENV === "production") ? "sip_bp_prod_auth_v1" : "sip_bp_dev_auth_v1";
 const authDomain = "sip-bp.example"; // Reserved domain, never accepts incoming mail
 export const isDevAuthConfigured = Boolean(url && publishableKey);
 
@@ -42,7 +42,7 @@ const save = (session: Session | null) => {
   } catch { /* private browsing */ }
 };
 async function request(path: string, init: RequestInit = {}, accessToken?: string) {
-  if (!isDevAuthConfigured) throw new Error("Supabase DEV belum dikonfigurasi.");
+  if (!isDevAuthConfigured) throw new Error("Supabase belum dikonfigurasi.");
   const res = await fetch(url + path, {
     ...init,
     headers: {
