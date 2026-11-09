@@ -120,8 +120,6 @@ export const KuitansiPrintModal: React.FC = () => {
             <a
               href={`?print=true&mode=print&id=${trx.id}`}
               target="_blank"
-              // Same-origin print tab needs an initial sessionStorage copy from the opener.
-              // The print page immediately removes window.opener after loading.
               rel="opener"
               onClick={preparePrintData}
               className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg text-xs font-semibold shadow-xs transition-colors cursor-pointer"
