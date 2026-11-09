@@ -6,7 +6,7 @@ Branch kandidat: `fitur-supabase-auth`. Domain utama `https://sip-bp.vercel.app`
 ## 1F — Tampilan, ekspor, cetak, dan penanda SAKTI
 - [x] Perbaikan CSV escaping untuk formula injection pada data teks.
 - [x] Unit test utilitas CSV, terbilang, dan tanggal ditambahkan ke `tests/formatters.test.ts`; workflow CI dikonfigurasi untuk `bun test` sebelum build.
-- [ ] **GitHub Actions gagal** pada run `42674093663` dan `42674439582` (status `failure`), tetapi endpoint job list belum mengembalikan data log. Penyebab belum terverifikasi. Jangan menyebut tes sudah lulus.
+- [ ] **GitHub Actions gagal** pada run `42674093663` dan `42674439582` (status `failure`), termasuk run terbaru `42703265345`; endpoint job list belum mengembalikan detail kerja sehingga akar penyebab belum dapat diverifikasi. Penyebab belum terverifikasi. Jangan menyebut tes sudah lulus.
 - [x] Perbaikan batch SAKTI: RPC atomik dicoba terlebih dahulu; apabila gagal, ditangani per SPTB dan UI menampilkan jumlah serta alasan kegagalan; duplikasi submission saat proses sedang berjalan dicegah.
 - [x] Vercel Preview terbaru selesai build dengan status READY.
 - [ ] Tes browser interaktif: login melalui tiga akun, tambah/edit/detail transaksi tiap jenis, modal cetak, PDF A4 portrait/landscape, ekspor langsung, refresh/sesi kadaluwarsa, bulk 100 termasuk campuran gagal.
@@ -18,6 +18,8 @@ Branch kandidat: `fitur-supabase-auth`. Domain utama `https://sip-bp.vercel.app`
 - [x] Verifikasi pengaturan Vercel: `VITE_SUPABASE_URL` dan `VITE_SUPABASE_PUBLISHABLE_KEY` **hanya Preview** branch `fitur-supabase-auth`. Tidak ada Production variables.
 - [x] Database test (Tahap 1E): pengecekan peran BPP RM/PNBP, mutasi finansial bertoken, kunci SAKTI, pajak dan transaksi pengujian yang di-rollback.
 - [x] Audit grant RPC: `anon` tidak punya EXECUTE fungsi transaksi publik, `authenticated` memiliki hak yang dibatasi cek peran di server.
+- [x] Uji akses tanpa login via `SET ROLE anon`: SELECT tabel transaksi dan pemanggilan RPC simpan ditolak.
+- [x] RLS aktif pada transaksi, rincian, profiles, konfigurasi pejabat, dan counter; pengguna terautentikasi hanya dapat SELECT tabel operasional yang telah diberi grant, tanpa INSERT/UPDATE/DELETE tabel langsung.
 - [x] Supabase Security Advisor: satu INFO `rls_enabled_no_policy` pada counter nomor SPTB (disengaja), satu WARN `auth_leaked_password_protection` (belum aktif).
 - [ ] Selidiki dan mitigasi peringatan password bocor; organisasi `agilkemendagri` berada pada paket Supabase **Free**. Perlindungan password bocor membutuhkan **Pro** atau lebih tinggi; tidak boleh mengklaim fitur sudah diaktifkan.
 - [ ] Pemeriksaan registrasi publik/nonaktif, brute force, pemulihan Bendahara, sesi JWT dan timeout, audit akun BPP Edge Function end-to-end.
