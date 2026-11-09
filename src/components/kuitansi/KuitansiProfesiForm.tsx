@@ -401,7 +401,7 @@ export const KuitansiProfesiForm: React.FC = () => {
   // ==========================================
   // SIMPAN TRANSAKSI (DRAFT / FINAL)
   // ==========================================
-  const handleSubmit = (targetStatus: 'Draft' | 'Final') => {
+  const handleSubmit = async (targetStatus: 'Draft' | 'Final') => {
     // 1. Validasi Data
     if (targetStatus === 'Final') {
       if (!kegiatan.trim()) {
@@ -446,6 +446,7 @@ export const KuitansiProfesiForm: React.FC = () => {
       finalNomorSPTB = generated.nomorSPTB;
     }
 
+    try {
     if (jenisDokumen === 'INDIVIDUAL') {
       const penerimaList: PenerimaItem[] = individualSessionCalculated.map((s, idx) => {
         const ratio = totalBrutoIndiv > 0 ? s.subtotal / totalBrutoIndiv : 0;
@@ -497,15 +498,9 @@ export const KuitansiProfesiForm: React.FC = () => {
       };
 
       if (editingTransaksi) {
-        updateTransaksi(editingTransaksi.id, payload);
-        showToast(
-          targetStatus === 'Draft'
-            ? `Draft transaksi ${finalNomorSPTB} berhasil diperbarui.`
-            : `Transaksi ${finalNomorSPTB} berhasil di-Finalisasi.`,
-          'success'
-        );
+        await updateTransaksi(editingTransaksi.id, payload);
       } else {
-        addTransaksi(payload);
+        await addTransaksi(payload);
       }
     } else {
       // KOLEKTIF
@@ -559,15 +554,9 @@ export const KuitansiProfesiForm: React.FC = () => {
       };
 
       if (editingTransaksi) {
-        updateTransaksi(editingTransaksi.id, payload);
-        showToast(
-          targetStatus === 'Draft'
-            ? `Draft transaksi ${finalNomorSPTB} berhasil diperbarui.`
-            : `Transaksi ${finalNomorSPTB} berhasil di-Finalisasi.`,
-          'success'
-        );
+        await updateTransaksi(editingTransaksi.id, payload);
       } else {
-        addTransaksi(payload);
+        await addTransaksi(payload);
       }
     }
 
