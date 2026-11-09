@@ -100,13 +100,13 @@ export const SptbPrintModal: React.FC = () => {
           {/* Header Kop Resmi */}
           <div className="text-center pb-4 border-b-2 border-slate-900 mb-6">
             <div className="text-xs uppercase tracking-widest text-slate-700 font-semibold">
-              KEMENTERIAN PERDAGANGAN REPUBLIK INDONESIA
+              KEMENTERIAN DALAM NEGERI REPUBLIK INDONESIA
             </div>
             <div className="text-sm sm:text-base font-bold uppercase tracking-tight text-slate-950 mt-1">
-              BALAI BESAR PENGAWASAN KEUANGAN DAN ASET PERDAGANGAN DALAM NEGERI IV
+              BALAI BESAR PENGEMBANGAN KOMPETENSI APARATUR PEMERINTAHAN DALAM NEGERI IV
             </div>
             <div className="text-[11px] text-slate-600 mt-1">
-              Jalan Percetakan Negara No. 23, Rawasari, Cempaka Putih, Jakarta Pusat 10570
+              Makassar, Sulawesi Selatan
             </div>
           </div>
 
@@ -124,7 +124,7 @@ export const SptbPrintModal: React.FC = () => {
           <div className="grid grid-cols-2 gap-y-1.5 text-xs mb-6 bg-slate-50 p-3 rounded border border-slate-200">
             <div>
               <span className="text-slate-500 inline-block w-36">1. Satuan Kerja (Satker)</span>
-              <span className="font-semibold">: BBPKA PDN IV (411892)</span>
+              <span className="font-semibold">: BBPKA PDN IV</span>
             </div>
             <div>
               <span className="text-slate-500 inline-block w-36">4. Tanggal Dokumen</span>
@@ -146,7 +146,7 @@ export const SptbPrintModal: React.FC = () => {
 
           {/* Klausul Pernyataan Tanggung Jawab Mutlak (SPTJM) */}
           <p className="mb-4 text-justify leading-relaxed">
-            Yang bertanda tangan di bawah ini, Pejabat Pembuat Komitmen (PPK) Balai Besar Pengawasan Keuangan dan Aset Perdagangan Dalam Negeri IV menyatakan bahwa saya bertanggung jawab penuh atas kebenaran perhitungan, kelengkapan bukti-bukti transaksi, dan pembayaran yang tertera pada daftar rincian di bawah ini sesuai ketentuan perundang-undangan yang berlaku:
+            Yang bertanda tangan di bawah ini, Pejabat Pembuat Komitmen (PPK) Balai Besar Pengembangan Kompetensi Aparatur Pemerintahan Dalam Negeri IV menyatakan bahwa saya bertanggung jawab penuh atas kebenaran perhitungan, kelengkapan bukti-bukti transaksi, dan pembayaran yang tertera pada daftar rincian di bawah ini sesuai ketentuan perundang-undangan yang berlaku:
           </p>
 
           {/* Tabel Daftar Rincian Pembayaran / Bukti Belanja */}
@@ -241,7 +241,7 @@ export const SptbPrintModal: React.FC = () => {
 
             <div>
               <div className="text-slate-600 mb-1">
-                Jakarta, {formatTanggalIndo(trx.tanggalKuitansi)}
+                Makassar, {formatTanggalIndo(trx.tanggalKuitansi)}
               </div>
               <div className="font-semibold text-slate-900">Bendahara Pengeluaran</div>
               <div className="h-20"></div>
