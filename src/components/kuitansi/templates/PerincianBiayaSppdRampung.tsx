@@ -12,8 +12,8 @@ export const PerincianBiayaSppdRampung: React.FC<{ transaksi: Transaksi }> = ({ 
   const tanggal = t.tanggalTandaTangan || t.tanggalKuitansi;
   const rowStyle: React.CSSProperties = { border: '1px solid #222', padding: '4px 5px', verticalAlign: 'top' };
   return (
-    <article className="sppd-rampung-sheet" style={{ background: '#fff', color: '#111', padding: '12mm 10mm', width: '210mm', minHeight: 'auto', boxSizing: 'border-box', fontFamily: 'Arial, sans-serif', fontSize: '11px', lineHeight: 1.32 }}>
-      <div style={{ fontSize: '10px', marginBottom: '12px' }}>
+    <article className="sppd-rampung-sheet" style={{ background: '#fff', color: '#111', padding: '12mm 10mm', width: '210mm', minHeight: 'auto', boxSizing: 'border-box', fontFamily: 'Arial, sans-serif', fontSize: '10pt', lineHeight: 1.35 }}>
+      <div style={{ fontSize: '9pt', marginBottom: '12px' }}>
         <div><b>Lampiran SPPD Nomor :</b> {t.nomorSPPD || '..................................'}</div>
         <div><b>Tanggal :</b> {t.tanggalSPPD ? formatTanggalIndo(t.tanggalSPPD) : '..................................'}</div>
       </div>
@@ -39,7 +39,7 @@ export const PerincianBiayaSppdRampung: React.FC<{ transaksi: Transaksi }> = ({ 
           <tr style={{breakInside:'avoid'}}><td colSpan={2} style={{...rowStyle,fontWeight:700}}>JUMLAH</td><td style={{...rowStyle,fontWeight:700,textAlign:'right',whiteSpace:'nowrap'}}>Rp {uang(ditetapkan)}</td><td style={rowStyle}/></tr>
         </tbody>
       </table>
-      {(t.totalPPN > 0 || t.totalPPh > 0) && <p style={{fontSize:'9px',marginTop:'6px'}}>Catatan pencatatan pajak (di luar total perincian biaya): PPN Rp {uang(t.totalPPN)}; PPh Rp {uang(t.totalPPh)}; nilai netto Rp {uang(t.totalNetto)}.</p>}
+      {(t.totalPPN > 0 || t.totalPPh > 0) && <p style={{fontSize:'9pt',marginTop:'6px'}}>Catatan pencatatan pajak (di luar total perincian biaya): PPN Rp {uang(t.totalPPN)}; PPh Rp {uang(t.totalPPh)}; nilai netto Rp {uang(t.totalNetto)}.</p>}
       <div style={{textAlign:'right',marginTop:'12px'}}>{kota}, {formatTanggalIndo(tanggal)}</div>
       <div className="sppd-signatures" style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'24px',marginTop:'10px',breakInside:'avoid'}}>
         <div>
