@@ -4,6 +4,7 @@
  */
 
 import React, { useState } from 'react';
+import {isProductionEnvironment,sipBpEnvironmentLabel} from '../../lib/sipBpEnvironment';
 import { useApp, ActiveView } from '../../context/AppContext';
 import {
   LayoutDashboard,
@@ -81,7 +82,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, setMobileOpen }) =
         <div className="px-5 py-3 border-b border-slate-800/80 bg-slate-900/60">
           <div className="flex items-center gap-2 text-[11px] text-slate-400">
             <Building2 className="w-3.5 h-3.5 text-blue-400 shrink-0" />
-            <span className="truncate">Balai Besar Pengawasan Keuangan IV</span>
+            <span className="truncate" title="Balai Besar Pengembangan Kompetensi Aparatur Pemerintahan Dalam Negeri IV">BBPKA PDN IV · Kemendagri</span>
           </div>
         </div>
 
@@ -225,12 +226,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, setMobileOpen }) =
           <div className="flex items-center justify-between text-[11px] text-slate-400">
             <span className="flex items-center gap-1.5 font-medium">
               <ShieldCheck className="w-3.5 h-3.5 text-blue-400" />
-              Data Supabase DEV
+              Data Supabase {sipBpEnvironmentLabel}
             </span>
 
           </div>
           <div className="text-[10px] text-slate-500 leading-tight">
-            Transaksi tersimpan di database. Penggunaan terbatas untuk pengujian.
+            {isProductionEnvironment ? 'Data tersimpan di Supabase Production yang terpisah.' : 'Transaksi tersimpan di database DEV. Gunakan data simulasi saja.'}
           </div>
         </div>
       </aside>
