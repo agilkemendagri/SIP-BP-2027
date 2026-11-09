@@ -10,9 +10,25 @@ const respond = (data: unknown, status = 200) => Response.json(data, { status, h
 const userPattern = /^[a-z][a-z0-9._-]{2,31}$/;
 const bppRole = (v: unknown): v is "bpp_rm" | "bpp_pnbp" => v === "bpp_rm" || v === "bpp_pnbp";
 const tempPassword = () => {
-  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#%";
-  const bytes = crypto.getRandomValues(new Uint8Array(24));
-  return Array.from(bytes, (v) => alphabet[v % alphabet.length]).join("");
+  // Every temporary password satisfies required uppercase/lowercase/digit/symbol.
+  const sets = [
+    "ABCDEFGHJKLMNPQRSTUVWXYZ",
+    "abcdefghijkmnopqrstuvwxyz",
+    "23456789",
+    "!@#%"
+  ];
+  const randomIndex = (max: number) => {
+    const n = crypto.getRandomValues(new Uint32Array(1))[0];
+    return n % max;
+  };
+  const chars = sets.map(s => s[randomIndex(s.length)]);
+  const alphabet = sets.join("");
+  for (let i = chars.length; i < 24; i++) chars.push(alphabet[randomIndex(alphabet.length)]);
+  for (let i = chars.length - 1; i > 0; i--) {
+    const j = randomIndex(i + 1);
+    [chars[i], chars[j]] = [chars[j], chars[i]];
+  }
+  return chars.join("");
 };
 const handler = withSupabase({ auth: "user" }, async (req, ctx) => {
   if (req.method !== "POST") return respond({ error: "Method not allowed" }, 405);
@@ -73,7 +89,10 @@ const handler = withSupabase({ auth: "user" }, async (req, ctx) => {
     }
     if (input.nip !== undefined) patch.nip = String(input.nip).trim() || null;
     if (input.jabatan !== undefined) patch.jabatan = String(input.jabatan).trim();
-    if (input.aktif !== undefined) patch.aktif = input.aktif === true;
+    if (input.aktif !== undefined) {
+      if (typeof input.aktif !== "boolean") return respond({ error: "Status aktif harus boolean" }, 400);
+      patch.aktif = input.aktif;
+    }
     if (Object.keys(patch).length === 0) return respond({ error: "Tidak ada perubahan" }, 400);
     patch.updated_at = new Date().toISOString();
     const { error } = await ctx.supabaseAdmin.from("profiles").update(patch).eq("user_id", targetId);
