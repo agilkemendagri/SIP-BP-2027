@@ -122,7 +122,7 @@ export const KuitansiExtractorView:React.FC=()=>{
   if(rows.some(r=>Math.abs(r.volume*r.tarifSatuan-r.bruto)>1)){
    setError('Volume × tarif tidak sama dengan bruto. Koreksi setiap baris sebelum simpan.');return;
   }
-  if(sourceNumber && visibleTransaksi.some(t=>t.nomorSPTB===sourceNumber)){
+  if(sourceNumber && visibleTransaksi.some(t=>t.nomorSPTB===sourceNumber || t.uraian.includes('[Dokumen luar: '+sourceNumber+']'))){
    setError('Nomor SPTB dokumen luar sudah tercatat di SIP-BP. Periksa duplikasi.');return;
   }
   if(!window.confirm('Simpan '+rows.length+' rincian sebagai Draft? SIP-BP akan menerbitkan NOMOR SPTB BARU, bukan memakai nomor dari dokumen luar. Pastikan tidak terjadi pencatatan ganda.'))return;
@@ -138,7 +138,7 @@ export const KuitansiExtractorView:React.FC=()=>{
    await addTransaksi({
     nomorKuitansi:'',nomorSPTB:'',tanggalKuitansi:date,sumberDana:source,jenisKuitansi:type,
     kegiatan:activity.trim(),kodeAkun:account,namaAkun:accountName.trim(),
-    uraian:description.trim()||penerimaList[0].uraianItem,
+    uraian:(description.trim()||penerimaList[0].uraianItem)+(sourceNumber?' [Dokumen luar: '+sourceNumber+']':''),
     ringkasanPenerima:penerimaList.length===1?penerimaList[0].nama:penerimaList[0].nama+' dkk.',
     penerimaList,totalBruto:sum.bruto,totalPPN:sum.ppn,totalPPh:sum.pph,totalNetto:sum.netto,
     status:'Draft',sudahSakti:false,
@@ -191,10 +191,10 @@ export const KuitansiExtractorView:React.FC=()=>{
      <label className="text-xs font-semibold">Nama Akun<input className={input} value={accountName} onChange={e=>{setAccountName(e.target.value);setConfirmed(false);}}/></label>
      <label className="text-xs font-semibold">Kegiatan<input className={input} value={activity} onChange={e=>{setActivity(e.target.value);setConfirmed(false);}} placeholder="Nama kegiatan sesuai kuitansi"/></label>
      <label className="text-xs font-semibold md:col-span-3">Uraian Dokumen<input className={input} value={description} onChange={e=>{setDescription(e.target.value);setConfirmed(false);}}/></label>
-     <label className="text-xs font-semibold">Nama PPK<input className={input} value={ppkName} onChange={e=>setPpkName(e.target.value)}/></label>
-     <label className="text-xs font-semibold">NIP PPK<input className={input} value={ppkNip} onChange={e=>setPpkNip(e.target.value)}/></label>
-     <label className="text-xs font-semibold">Nama Bendahara<input className={input} value={treasurerName} onChange={e=>setTreasurerName(e.target.value)}/></label>
-     <label className="text-xs font-semibold">NIP Bendahara<input className={input} value={treasurerNip} onChange={e=>setTreasurerNip(e.target.value)}/></label>
+     <label className="text-xs font-semibold">Nama PPK<input className={input} value={ppkName} onChange={e=>{setPpkName(e.target.value);setConfirmed(false);}}/></label>
+     <label className="text-xs font-semibold">NIP PPK<input className={input} value={ppkNip} onChange={e=>{setPpkNip(e.target.value);setConfirmed(false);}}/></label>
+     <label className="text-xs font-semibold">Nama Bendahara<input className={input} value={treasurerName} onChange={e=>{setTreasurerName(e.target.value);setConfirmed(false);}}/></label>
+     <label className="text-xs font-semibold">NIP Bendahara<input className={input} value={treasurerNip} onChange={e=>{setTreasurerNip(e.target.value);setConfirmed(false);}}/></label>
     </div>
    </section>
    <section className="bg-white border rounded-xl p-4">
