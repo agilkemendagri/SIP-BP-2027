@@ -93,13 +93,23 @@ export const terbilang = (n: number): string => {
 };
 
 /**
+ * Escape Excel/LibreOffice formula injection from untrusted recipient/activity names.
+ * Quoting CSV alone does not neutralize cells beginning with =, +, -, or @.
+ * Numeric values stay numeric, and all text is quoted for semicolon-delimited CSV.
+ */
+export const csvEscapeCell = (value: string | number): string => {
+  const raw = String(value ?? '');
+  const safe = typeof value === 'string' && /^[\s\u0000-\u001f]*[=+\-@]/u.test(raw)
+    ? "'" + raw
+    : raw;
+  return '"' + safe.replace(/"/g, '""') + '"';
+};
+
+/**
  * Generate CSV / TSV file and trigger direct browser download
  */
 export const downloadCSV = (filename: string, headers: string[], rows: (string | number)[][]) => {
-  const sanitize = (val: string | number) => {
-    const str = String(val ?? '').replace(/"/g, '""');
-    return `"${str}"`;
-  };
+  const sanitize = csvEscapeCell;
 
   const csvContent = [
     '\uFEFF' + headers.map(sanitize).join(';'), // UTF-8 BOM for Excel in Indonesia locale

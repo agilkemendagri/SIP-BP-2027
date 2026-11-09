@@ -4,11 +4,13 @@
  */
 
 import React, { useEffect, useState } from 'react';
+import { isCollectiveReceipt } from '../../utils/receiptKind';
 import { TandaTerimaIndividual } from './templates/TandaTerimaIndividual';
 import { TandaTerimaKolektif } from './templates/TandaTerimaKolektif';
 import { Printer, Download, ArrowLeft, CheckCircle2, AlertCircle } from 'lucide-react';
 import { exportElementToPdf } from '../../utils/pdfGenerator';
 import { formatTanggalIndo } from '../../utils/formatters';
+import {fetchFinancialTransactions} from '../../lib/sipBpFinance';
 
 export const STORAGE_KEY_PRINT_PAYLOAD = 'sip_bp_print_payload_v1';
 
@@ -19,34 +21,30 @@ export const PrintStandaloneView: React.FC = () => {
   const printAreaRef = React.useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    try {
-      const stored = sessionStorage.getItem(STORAGE_KEY_PRINT_PAYLOAD);
-      if (stored) {
-        setData(JSON.parse(stored));
-      } else {
-        // Fallback: check query params or local storage for last transaction
-        const urlParams = new URLSearchParams(window.location.search);
-        const trxId = urlParams.get('id');
+    // The same-origin opener enables initial sessionStorage cloning for auth.
+    // Drop the opener once mounted to prevent later reverse-tab navigation.
+    if (window.opener) window.opener = null;
+    let active = true;
+    const run = async () => {
+      try {
+        const stored = sessionStorage.getItem(STORAGE_KEY_PRINT_PAYLOAD);
+        const trxId = new URLSearchParams(window.location.search).get("id");
         if (trxId) {
-          const allStored = localStorage.getItem('sip_bp_transaksi_v1');
-          if (allStored) {
-            const list = JSON.parse(allStored);
-            const found = list.find((t: any) => t.id === trxId);
-            if (found) {
-              setData({
-                mode: found.penerimaList?.length > 1 ? 'KOLEKTIF' : 'INDIVIDUAL',
-                ...found,
-              });
-              return;
-            }
-          }
-        }
-        setError('Data dokumen cetak tidak ditemukan. Silakan kembali ke aplikasi dan klik "Buka Halaman Cetak" lagi.');
+          // Backend/RLS is the source of truth for saved receipts.
+          const rows = await fetchFinancialTransactions();
+          const trx = rows.find(t=>t.id===trxId);
+          if(!trx) throw new Error("Dokumen tidak ditemukan atau akses ditolak.");
+          if(active)setData({...trx,mode:isCollectiveReceipt(trx.penerimaList)?"KOLEKTIF":"INDIVIDUAL"});
+        }else if(stored) {
+          if(active)setData(JSON.parse(stored));
+        }else throw new Error("Data cetak tidak ditemukan. Kembali ke daftar transaksi.");
+      }catch(e) {
+        if(active)setError(e instanceof Error?e.message:"Gagal memuat dokumen cetak");
       }
-    } catch (e: any) {
-      setError(`Gagal memuat data cetak: ${e?.message || String(e)}`);
-    }
-  }, []);
+    };
+    run();
+    return ()=>{active=false;};
+  },[]);
 
   const handlePrint = () => {
     window.print();
@@ -170,11 +168,11 @@ export const PrintStandaloneView: React.FC = () => {
               namaInstansiPendek={data.namaSatkerPendek}
               sumberDana={data.sumberDana || 'PNBP'}
               kota={data.kotaTandaTerima || data.kota || 'Makassar'}
-              tanggalIndo={data.tanggalIndo || (data.tanggalKuitansi ? formatTanggalIndo(data.tanggalKuitansi) : '1 September 2026')}
-              ppkNama={data.ppkNama || 'Saptono Gunason L, S.STP., M.Tr.AP.'}
-              ppkNip={data.ppkNip || '199811072020081001'}
-              bppNama={data.bppNama || data.bendaharaNama || 'Muh. Anugrah Al-Giffary, S.M.'}
-              bppNip={data.bppNip || data.bendaharaNip || '199906052019121001'}
+              tanggalIndo={data.tanggalIndo || (data.tanggalKuitansi ? formatTanggalIndo(data.tanggalKuitansi) : '')}
+              ppkNama={data.ppkNama || ''}
+              ppkNip={data.ppkNip || ''}
+              bppNama={data.bppNama || data.bendaharaNama || ''}
+              bppNip={data.bppNip || data.bendaharaNip || ''}
               rows={data.calculatedRowsKolektif || data.rows || (data.penerimaList ? data.penerimaList.map((p: any, idx: number) => ({
                 id: p.id || `row-${idx}`,
                 nama: p.nama,
@@ -199,11 +197,11 @@ export const PrintStandaloneView: React.FC = () => {
               uraianKegiatan={data.uraianUmum || data.uraian || 'Honorarium Jasa Profesi'}
               sumberDana={data.sumberDana || 'PNBP'}
               kota={data.kotaTandaTerima || data.kota || 'Makassar'}
-              tanggalIndo={data.tanggalIndo || (data.tanggalKuitansi ? formatTanggalIndo(data.tanggalKuitansi) : '1 September 2026')}
-              ppkNama={data.ppkNama || 'Saptono Gunason L, S.STP., M.Tr.AP.'}
-              ppkNip={data.ppkNip || '199811072020081001'}
-              bppNama={data.bppNama || data.bendaharaNama || 'Muh. Anugrah Al-Giffary, S.M.'}
-              bppNip={data.bppNip || data.bendaharaNip || '199906052019121001'}
+              tanggalIndo={data.tanggalIndo || (data.tanggalKuitansi ? formatTanggalIndo(data.tanggalKuitansi) : '')}
+              ppkNama={data.ppkNama || ''}
+              ppkNip={data.ppkNip || ''}
+              bppNama={data.bppNama || data.bendaharaNama || ''}
+              bppNip={data.bppNip || data.bendaharaNip || ''}
               sesiList={data.individualSessionCalculated || data.sesiList || (data.penerimaList ? data.penerimaList.map((p: any, idx: number) => ({
                 id: p.id || `sesi-${idx}`,
                 uraianSesi: p.uraianItem || data.uraian,

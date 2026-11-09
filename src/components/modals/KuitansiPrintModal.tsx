@@ -4,6 +4,7 @@
  */
 
 import React from 'react';
+import { isCollectiveReceipt } from '../../utils/receiptKind';
 import { useApp } from '../../context/AppContext';
 import { formatRupiah, formatTanggalIndo, terbilang } from '../../utils/formatters';
 import { TandaTerimaIndividual } from '../kuitansi/templates/TandaTerimaIndividual';
@@ -20,7 +21,7 @@ export const KuitansiPrintModal: React.FC = () => {
 
   const trx = previewKuitansi;
   const isJasaProfesi = trx.jenisKuitansi === 'jasa_profesi';
-  const isKolektif = trx.penerimaList.length > 1 && new Set(trx.penerimaList.map(p => p.nama)).size > 1;
+  const isKolektif = isCollectiveReceipt(trx.penerimaList);
 
   const preparePrintData = () => {
     const payload = {
@@ -35,10 +36,10 @@ export const KuitansiPrintModal: React.FC = () => {
       kotaTandaTerima: 'Makassar',
       tanggalKuitansi: trx.tanggalKuitansi,
       tanggalIndo: formatTanggalIndo(trx.tanggalKuitansi),
-      ppkNama: trx.ppkNama || 'Saptono Gunason L, S.STP., M.Tr.AP.',
-      ppkNip: trx.ppkNip || '199811072020081001',
-      bppNama: trx.bendaharaNama || 'Muh. Anugrah Al-Giffary, S.M.',
-      bppNip: trx.bendaharaNip || '199906052019121001',
+      ppkNama: trx.ppkNama || '',
+      ppkNip: trx.ppkNip || '',
+      bppNama: trx.bendaharaNama || '',
+      bppNip: trx.bendaharaNip || '',
       penerimaList: trx.penerimaList,
       totalBruto: trx.totalBruto,
       totalPPh: trx.totalPPh,
@@ -120,7 +121,7 @@ export const KuitansiPrintModal: React.FC = () => {
             <a
               href={`?print=true&mode=print&id=${trx.id}`}
               target="_blank"
-              rel="noopener noreferrer"
+              rel="opener"
               onClick={preparePrintData}
               className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg text-xs font-semibold shadow-xs transition-colors cursor-pointer"
               title="Buka dokumen di tab browser baru untuk mencetak langsung tanpa batasan iframe sandbox"
@@ -171,10 +172,10 @@ export const KuitansiPrintModal: React.FC = () => {
                   sumberDana={trx.sumberDana}
                   kota="Makassar"
                   tanggalIndo={formatTanggalIndo(trx.tanggalKuitansi)}
-                  ppkNama={trx.ppkNama || 'Saptono Gunason L, S.STP., M.Tr.AP.'}
-                  ppkNip={trx.ppkNip || '199811072020081001'}
-                  bppNama={trx.bendaharaNama || 'Muh. Anugrah Al-Giffary, S.M.'}
-                  bppNip={trx.bendaharaNip || '199906052019121001'}
+                  ppkNama={trx.ppkNama || ''}
+                  ppkNip={trx.ppkNip || ''}
+                  bppNama={trx.bendaharaNama || ''}
+                  bppNip={trx.bendaharaNip || ''}
                   rows={trx.penerimaList.map((p, idx) => ({
                     id: p.id || `row-${idx}`,
                     nama: p.nama,
@@ -199,10 +200,10 @@ export const KuitansiPrintModal: React.FC = () => {
                   sumberDana={trx.sumberDana}
                   kota="Makassar"
                   tanggalIndo={formatTanggalIndo(trx.tanggalKuitansi)}
-                  ppkNama={trx.ppkNama || 'Saptono Gunason L, S.STP., M.Tr.AP.'}
-                  ppkNip={trx.ppkNip || '199811072020081001'}
-                  bppNama={trx.bendaharaNama || 'Muh. Anugrah Al-Giffary, S.M.'}
-                  bppNip={trx.bendaharaNip || '199906052019121001'}
+                  ppkNama={trx.ppkNama || ''}
+                  ppkNip={trx.ppkNip || ''}
+                  bppNama={trx.bendaharaNama || ''}
+                  bppNip={trx.bendaharaNip || ''}
                   sesiList={trx.penerimaList.map(p => ({
                     id: p.id,
                     uraianSesi: p.uraianItem || trx.uraian,
@@ -227,7 +228,7 @@ export const KuitansiPrintModal: React.FC = () => {
                       BBPKA PDN IV
                     </div>
                     <div className="text-xs sm:text-sm font-bold text-slate-950 uppercase tracking-tight">
-                      Balai Besar Pengawasan Keuangan dan Aset Perdagangan Dalam Negeri IV
+                      Balai Besar Pengembangan Kompetensi Aparatur Pemerintahan Dalam Negeri IV
                     </div>
                   </div>
                   <div className="text-right font-mono text-xs">

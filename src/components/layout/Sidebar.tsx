@@ -4,6 +4,7 @@
  */
 
 import React, { useState } from 'react';
+import {isProductionEnvironment,sipBpEnvironmentLabel} from '../../lib/sipBpEnvironment';
 import { useApp, ActiveView } from '../../context/AppContext';
 import {
   LayoutDashboard,
@@ -29,7 +30,7 @@ interface SidebarProps {
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, setMobileOpen }) => {
-  const { activeView, setActiveView, currentRole, resetToDefaultData } = useApp();
+  const { activeView, setActiveView, currentRole } = useApp();
   const [kuitansiExpanded, setKuitansiExpanded] = useState<boolean>(() => {
     return activeView.startsWith('kuitansi_');
   });
@@ -81,7 +82,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, setMobileOpen }) =
         <div className="px-5 py-3 border-b border-slate-800/80 bg-slate-900/60">
           <div className="flex items-center gap-2 text-[11px] text-slate-400">
             <Building2 className="w-3.5 h-3.5 text-blue-400 shrink-0" />
-            <span className="truncate">Balai Besar Pengawasan Keuangan IV</span>
+            <span className="truncate" title="Balai Besar Pengembangan Kompetensi Aparatur Pemerintahan Dalam Negeri IV">BBPKA PDN IV · Kemendagri</span>
           </div>
         </div>
 
@@ -225,18 +226,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, setMobileOpen }) =
           <div className="flex items-center justify-between text-[11px] text-slate-400">
             <span className="flex items-center gap-1.5 font-medium">
               <ShieldCheck className="w-3.5 h-3.5 text-blue-400" />
-              Simulasi Lokal SIP-BP
+              Data Supabase {sipBpEnvironmentLabel}
             </span>
-            <button
-              onClick={resetToDefaultData}
-              title="Reset data ke bawaan awal"
-              className="p-1 text-slate-400 hover:text-slate-200 rounded hover:bg-slate-800 transition-colors"
-            >
-              <RotateCcw className="w-3.5 h-3.5" />
-            </button>
+
           </div>
           <div className="text-[10px] text-slate-500 leading-tight">
-            Tahun Anggaran Berjalan 2026. Data tersimpan di peramban lokal.
+            {isProductionEnvironment ? 'Data tersimpan di Supabase Production yang terpisah.' : 'Transaksi tersimpan di database DEV. Gunakan data simulasi saja.'}
           </div>
         </div>
       </aside>

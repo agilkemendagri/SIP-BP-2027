@@ -1,0 +1,1 @@
+Backend migration applied on SIP-BP-DEV: `sip_bp_1d_atomic_finance_rpc` (atomic save/status/delete/SAKTI/unlock RPC). Public wrappers in `public`, private security-definer implementation in `sip_bp_private`. Browser direct write grants remain revoked. SQL migration registered in Supabase migration history.

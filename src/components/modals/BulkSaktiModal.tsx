@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { ShieldCheck, AlertTriangle, Lock, X } from 'lucide-react';
 import { formatTanggalIndo, formatRupiah } from '../../utils/formatters';
@@ -15,7 +15,9 @@ export const BulkSaktiModal: React.FC = () => {
     selectedForSaktiIds,
     allTransaksi,
     markSaktiBulk,
+    saktiBatchReport,
   } = useApp();
+  const [busy, setBusy] = useState(false);
 
   if (!isBulkSaktiModalOpen) return null;
 
@@ -26,8 +28,12 @@ export const BulkSaktiModal: React.FC = () => {
 
   const totalBruto = selectedTransactions.reduce((acc, t) => acc + t.totalBruto, 0);
 
-  const handleConfirm = () => {
-    markSaktiBulk(selectedTransactions.map(t => t.id));
+  const handleConfirm = async () => {
+    if (busy || selectedTransactions.length===0 || selectedTransactions.length>100) return;
+    setBusy(true);
+    try { await markSaktiBulk(selectedTransactions.map(t => t.id)); }
+    catch { /* Error toast is set by AppContext; keep modal open for retry. */ }
+    finally { setBusy(false); }
   };
 
   return (
@@ -66,11 +72,23 @@ export const BulkSaktiModal: React.FC = () => {
                 Perhatian: Transaksi akan Terkunci
               </span>
               <p className="text-[11px] leading-relaxed text-amber-800">
-                Transaksi yang telah ditandai 'Sudah Digunakan di SAKTI' akan dikunci secara otomatis dalam simulasi, sehingga tidak dapat diubah atau dihapus untuk menjaga keutuhan pembukuan bendahara.
+                Transaksi yang telah ditandai 'Sudah Digunakan di SAKTI' akan dikunci secara otomatis di database, sehingga tidak dapat diubah atau dihapus untuk menjaga keutuhan pembukuan bendahara.
               </p>
             </div>
           </div>
 
+          {saktiBatchReport?.failed.length ? (
+            <div role="alert" className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-xs text-amber-950">
+              <strong>Hasil penandaan SAKTI: {saktiBatchReport.succeeded.length} berhasil, {saktiBatchReport.failed.length} gagal.</strong>
+              <p className="mt-1">Berkas yang gagal tetap dipilih untuk diperiksa. Berkas berhasil sudah terkunci.</p>
+              <ul className="mt-2 list-disc pl-5 max-h-32 overflow-y-auto space-y-1">
+                {saktiBatchReport.failed.map(item=>{
+                  const record=allTransaksi.find(t=>t.id===item.id);
+                  return <li key={item.id}>{record?.nomorSPTB||item.id}: {item.message}</li>;
+                })}
+              </ul>
+            </div>
+          ) : null}
           {/* Summary count */}
           <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50 border border-slate-200">
             <div>
@@ -127,10 +145,11 @@ export const BulkSaktiModal: React.FC = () => {
           <button
             type="button"
             onClick={handleConfirm}
+            disabled={busy || selectedTransactions.length===0 || selectedTransactions.length>100}
             className="px-4 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors shadow-xs flex items-center gap-1.5"
           >
             <Lock className="w-3.5 h-3.5" />
-            Tandai SAKTI & Kunci Transaksi
+            {busy ? 'Memproses...' : 'Tandai SAKTI & Kunci Transaksi'}
           </button>
         </div>
       </div>

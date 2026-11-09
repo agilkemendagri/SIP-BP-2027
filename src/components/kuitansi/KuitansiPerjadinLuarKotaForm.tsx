@@ -28,60 +28,29 @@ export const KuitansiPerjadinLuarKotaForm: React.FC = () => {
   );
   const [kodeAkun, setKodeAkun] = useState<string>('524111'); // Belanja Perjalanan Dinas Biasa (Luar Kota)
   const [kegiatan, setKegiatan] = useState<string>(
-    'Pengawasan dan Pemantauan Stok Bahan Pokok Menjelang Hari Besar Keagamaan'
+    ''
   );
   const [uraian, setUraian] = useState<string>(
-    'Pembayaran Biaya Perjalanan Dinas Pengawasan Pasar Luar Kota ke Surabaya'
+    ''
   );
 
   // Data Surat Tugas & Wilayah
-  const [suratTugasNomor, setSuratTugasNomor] = useState<string>('ST-088/BBPKAIV/03/2026');
-  const [tanggalTugas, setTanggalTugas] = useState<string>('2026-03-24 s.d. 2026-03-26');
-  const [kotaAsal, setKotaAsal] = useState<string>('Jakarta');
-  const [kotaTujuan, setKotaTujuan] = useState<string>('Surabaya, Jawa Timur');
+  const [suratTugasNomor, setSuratTugasNomor] = useState<string>('');
+  const [tanggalTugas, setTanggalTugas] = useState<string>('');
+  const [kotaAsal, setKotaAsal] = useState<string>('');
+  const [kotaTujuan, setKotaTujuan] = useState<string>('');
 
   // Identitas Pelaksana
-  const [namaPelaksana, setNamaPelaksana] = useState<string>('Drs. Agus Setiawan, M.Si.');
-  const [nipPelaksana, setNipPelaksana] = useState<string>('19750918 199903 1 002');
-  const [golonganPelaksana, setGolonganPelaksana] = useState<string>('IV/a - Pembina');
-  const [jabatanPelaksana, setJabatanPelaksana] = useState<string>('Analis Perdagangan Ahli Madya');
-  const [rekening, setRekening] = useState<string>('00281928371');
-  const [bank, setBank] = useState<string>('Bank BNI');
+  const [namaPelaksana, setNamaPelaksana] = useState<string>('');
+  const [nipPelaksana, setNipPelaksana] = useState<string>('');
+  const [golonganPelaksana, setGolonganPelaksana] = useState<string>('');
+  const [jabatanPelaksana, setJabatanPelaksana] = useState<string>('');
+  const [rekening, setRekening] = useState<string>('');
+  const [bank, setBank] = useState<string>('');
 
   // Rincian Komponen Biaya Perjalanan Dinas
   const [biayaItems, setBiayaItems] = useState<BiayaItem[]>([
-    {
-      id: '1',
-      kategori: 'Uang Harian',
-      uraian: 'Uang Harian Perjalanan Dinas Surabaya (3 Hari)',
-      volume: 3,
-      satuan: 'Hari',
-      tarifSatuan: 410000,
-    },
-    {
-      id: '2',
-      kategori: 'Penginapan',
-      uraian: 'Biaya Penginapan Hotel Bintang 3 (2 Malam)',
-      volume: 2,
-      satuan: 'Kamar/Malam',
-      tarifSatuan: 650000,
-    },
-    {
-      id: '3',
-      kategori: 'Transportasi',
-      uraian: 'Tiket Pesawat PP Jakarta - Surabaya (CGK - SUB)',
-      volume: 1,
-      satuan: 'Paket PP',
-      tarifSatuan: 2450000,
-    },
-    {
-      id: '4',
-      kategori: 'Taksi / Lokal',
-      uraian: 'Transportasi Taksi Bandara CGK dan SUB (PP)',
-      volume: 1,
-      satuan: 'Paket',
-      tarifSatuan: 340000,
-    },
+    {id:"1",kategori:"Uang Harian",uraian:"",volume:1,satuan:"Hari",tarifSatuan:0}
   ]);
 
   // Pajak (Bisa disimulasikan jika dipungut pajak hotel/tiket)
@@ -133,7 +102,7 @@ export const KuitansiPerjadinLuarKotaForm: React.FC = () => {
     return `KUI/${dana}/${year}/${month}/0${randomSeq}`;
   };
 
-  const handleSubmit = (targetStatus: 'Draft' | 'Final') => {
+  const handleSubmit = async (targetStatus: 'Draft' | 'Final') => {
     if (!namaPelaksana.trim() || !kegiatan.trim() || totalBruto <= 0) {
       showToast('Harap lengkapi nama pelaksana, kegiatan, dan rincian biaya!', 'warning');
       return;
@@ -163,7 +132,8 @@ export const KuitansiPerjadinLuarKotaForm: React.FC = () => {
       };
     });
 
-    addTransaksi({
+    try {
+    await addTransaksi({
       nomorKuitansi: generateNomorKuitansi(sumberDana, tanggalKuitansi),
       nomorSPTB: generateNomorSptb(sumberDana, tanggalKuitansi),
       tanggalKuitansi,
@@ -181,10 +151,10 @@ export const KuitansiPerjadinLuarKotaForm: React.FC = () => {
       totalNetto,
       status: targetStatus,
       sudahSakti: false,
-      ppkNama: 'Ir. Bambang Hermanto, M.M.',
-      ppkNip: '19780512 200312 1 002',
-      bendaharaNama: 'Siti Aminah, S.E., M.Ak.',
-      bendaharaNip: '19850410 200901 2 004',
+      ppkNama: '',
+      ppkNip: '',
+      bendaharaNama: '',
+      bendaharaNip: '',
       suratTugasNomor,
       tanggalTugas,
       kotaAsal,
@@ -192,6 +162,9 @@ export const KuitansiPerjadinLuarKotaForm: React.FC = () => {
     });
 
     setActiveView('transaksi');
+    } catch (error) {
+      // Error already surfaced by AppContext; keep the form open so users can correct it.
+    }
   };
 
   return (
