@@ -770,10 +770,11 @@ export const KuitansiProfesiForm: React.FC = () => {
               </label>
               <select
                 value={sumberDana}
+                disabled={currentRole !== 'bendahara' || Boolean(editingTransaksi)}
                 onChange={e => setSumberDana(e.target.value as SumberDana)}
                 className="w-full px-3 py-2 text-xs rounded-lg border border-slate-300 bg-slate-50 focus:outline-none"
               >
-                <option value="PNBP">PNBP (Sesuai Referensi PDF)</option>
+                <option value="PNBP">PNBP</option>
                 <option value="RM">Rupiah Murni (RM)</option>
               </select>
             </div>
