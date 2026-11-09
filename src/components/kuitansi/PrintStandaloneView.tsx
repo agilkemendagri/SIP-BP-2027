@@ -20,6 +20,9 @@ export const PrintStandaloneView: React.FC = () => {
   const printAreaRef = React.useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    // The same-origin opener enables initial sessionStorage cloning for auth.
+    // Drop the opener once mounted to prevent later reverse-tab navigation.
+    if (window.opener) window.opener = null;
     let active = true;
     const run = async () => {
       try {
