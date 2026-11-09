@@ -45,7 +45,7 @@ export const AuthPortal:React.FC=()=>{
     <span><ShieldCheck size={13} className="inline mr-1"/>SIP-BP {sipBpEnvironmentLabel} · @{profile.username} · {profile.role==="bendahara"?"RM + PNBP":profile.role==="bpp_rm"?"RM":"PNBP"}</span>
     <button type="button" onClick={logout} className="flex gap-1 items-center bg-slate-800 px-3 py-1.5 rounded-lg"><LogOut size={14}/>Keluar</button>
    </div>
-   <SecureFinanceShell profile={profile}/>
+   <SecureFinanceShell profile={profile} onProfileUpdated={setProfile}/>
   </div>;
  }
  return <div className="min-h-screen bg-slate-100 text-slate-900">
