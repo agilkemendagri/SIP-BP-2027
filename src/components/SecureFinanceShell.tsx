@@ -12,6 +12,7 @@ import {KuitansiPerjadinDalamKotaForm} from "./kuitansi/KuitansiPerjadinDalamKot
 import {SptbView} from "./sptb/SptbView";
 import {RekapView} from "./rekap/RekapView";
 import {PenggunaView} from "./pengguna/PenggunaView";
+import {KuitansiExtractorView} from "./kuitansi/KuitansiExtractorView";
 import {KuitansiPrintModal} from "./modals/KuitansiPrintModal";
 import {SptbPrintModal} from "./modals/SptbPrintModal";
 import {BulkSaktiModal} from "./modals/BulkSaktiModal";
@@ -42,6 +43,7 @@ function Content(){
     {activeView==="transaksi"&&<DaftarTransaksiView/>}
     {activeView==="rekap"&&<RekapView/>}
     {activeView==="pengguna"&&<PenggunaView/>}
+    {activeView==="ekstraktor"&&<KuitansiExtractorView/>}
    </main>
    <footer className="text-xs text-slate-500 border-t border-slate-200 py-4 px-6 text-center">
     SIP-BP · BBPKA PDN IV · {isProductionEnvironment ? "Sistem Bendahara Pengeluaran" : "Lingkungan pengembangan · Bukan untuk data keuangan riil"}
