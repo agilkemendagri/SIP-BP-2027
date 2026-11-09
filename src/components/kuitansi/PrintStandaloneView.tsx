@@ -158,10 +158,10 @@ export const PrintStandaloneView: React.FC = () => {
       </div>
 
       {/* Main Sheet Container */}
-      <div className="p-4 sm:p-8 print:p-0 flex justify-center">
+      <div className="sppd-print-container p-4 sm:p-8 print:p-0 flex justify-center">
         <div
           ref={printAreaRef}
-          className={`bg-white shadow-xl print:shadow-none border border-slate-300 print:border-none ${
+          className={`sppd-print-paper bg-white shadow-xl print:shadow-none border border-slate-300 print:border-none ${
             data.jenisKuitansi === 'perjadin_luar_kota' ? 'print-portrait w-[210mm]' : isKolektif ? 'print-landscape w-[297mm]' : 'print-portrait w-[210mm]'
           }`}
         >
