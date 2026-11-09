@@ -9,6 +9,7 @@ import { useApp, ActiveView } from '../../context/AppContext';
 import {
   LayoutDashboard,
   Receipt,
+  ScanLine,
   FileCheck2,
   ListFilter,
   FileSpreadsheet,
@@ -160,6 +161,15 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, setMobileOpen }) =
               </div>
             )}
           </div>
+
+          {/* Ekstraktor Kuitansi Luar Sistem */}
+          <button
+            onClick={() => handleNavClick('ekstraktor')}
+            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors text-left ${activeView==='ekstraktor'?'bg-blue-600 text-white font-semibold shadow-sm':'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
+          >
+            <ScanLine className="w-4 h-4 shrink-0 text-emerald-400"/>
+            <span>Ekstraktor Kuitansi</span>
+          </button>
 
           {/* SPTB */}
           <button
