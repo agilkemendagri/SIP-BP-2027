@@ -5,7 +5,8 @@ Branch kandidat: `fitur-supabase-auth`. Domain utama `https://sip-bp.vercel.app`
 
 ## 1F — Tampilan, ekspor, cetak, dan penanda SAKTI
 - [x] Perbaikan CSV escaping untuk formula injection pada data teks.
-- [x] Unit test utilitas CSV, terbilang, dan tanggal ditambahkan ke `tests/formatters.test.ts`; workflow CI menjalankan `bun test` sebelum build (hasil GitHub Actions harus diperiksa secara terpisah).
+- [x] Unit test utilitas CSV, terbilang, dan tanggal ditambahkan ke `tests/formatters.test.ts`; workflow CI dikonfigurasi untuk `bun test` sebelum build.
+- [ ] **GitHub Actions gagal** pada run `42674093663` dan `42674439582` (status `failure`), tetapi endpoint job list belum mengembalikan data log. Penyebab belum terverifikasi. Jangan menyebut tes sudah lulus.
 - [x] Perbaikan batch SAKTI: RPC atomik dicoba terlebih dahulu; apabila gagal, ditangani per SPTB dan UI menampilkan jumlah serta alasan kegagalan; duplikasi submission saat proses sedang berjalan dicegah.
 - [x] Vercel Preview terbaru selesai build dengan status READY.
 - [ ] Tes browser interaktif: login melalui tiga akun, tambah/edit/detail transaksi tiap jenis, modal cetak, PDF A4 portrait/landscape, ekspor langsung, refresh/sesi kadaluwarsa, bulk 100 termasuk campuran gagal.
@@ -20,7 +21,7 @@ Branch kandidat: `fitur-supabase-auth`. Domain utama `https://sip-bp.vercel.app`
 - [x] Supabase Security Advisor: satu INFO `rls_enabled_no_policy` pada counter nomor SPTB (disengaja), satu WARN `auth_leaked_password_protection` (belum aktif).
 - [ ] Selidiki dan mitigasi peringatan password bocor; organisasi `agilkemendagri` berada pada paket Supabase **Free**. Perlindungan password bocor membutuhkan **Pro** atau lebih tinggi; tidak boleh mengklaim fitur sudah diaktifkan.
 - [ ] Pemeriksaan registrasi publik/nonaktif, brute force, pemulihan Bendahara, sesi JWT dan timeout, audit akun BPP Edge Function end-to-end.
-- [ ] Cadangan, prosedur restore, perlindungan data keuangan dan audit internal instansi.
+- [ ] Cadangan, prosedur restore, perlindungan data keuangan dan audit internal instansi. Supabase Free tidak menyediakan kemampuan backup/keandalan setara paket Pro; keputusan hosting Production harus mempertimbangkan ketersediaan dan pemulihan.
 - [ ] Pengujian beban/konkurensi nomor SPTB serta pemulihan bila transaksi server gagal.
 
 ## 2A — Supabase Production terpisah
@@ -34,6 +35,7 @@ Persiapan:
 
 ## 2B — Migrasi Production
 **TERTAHAN karena 2A belum selesai.**
+- [x] Ketujuh SQL migrasi asli sudah disalin utuh dari `supabase_migrations.schema_migrations.statements` DEV ke folder `supabase/migrations/` di branch fitur (tanpa data pengguna dan tanpa kredensial literal yang terdeteksi). SQL **belum diterapkan** pada PROD.
 - Migrasi DEV yang terdeteksi berurutan:
   - `20261109163555 sip_bp_profiles_roles_foundation`
   - `20261109163914 sip_bp_transaction_structure_and_rls`
