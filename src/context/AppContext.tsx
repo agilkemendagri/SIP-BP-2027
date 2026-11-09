@@ -20,7 +20,7 @@ interface AppContextType {
  penggunaList:UserSimulasi[];
  loadingTransaksi:boolean;
  dataError:string;
- refreshTransaksi:()=>Promise<void>;
+ refreshTransaksi:()=>Promise<Transaksi[]>;
  filterTahun:string;setFilterTahun:(v:string)=>void;
  filterBulan:string;setFilterBulan:(v:string)=>void;
  addTransaksi:(data:Omit<Transaksi,"id"|"createdAt"|"updatedAt">)=>Promise<Transaksi>;
@@ -78,6 +78,7 @@ export const AppProvider:React.FC<{children:ReactNode;authenticatedProfile:SipPr
    try {
      const rows=await fetchFinancialTransactions();
      setAllTransaksi(rows);setDataError("");
+     return rows;
    }catch(e) {
      setDataError(e instanceof Error?e.message:"Gagal memuat data");
      throw e;
@@ -111,10 +112,10 @@ export const AppProvider:React.FC<{children:ReactNode;authenticatedProfile:SipPr
  const addTransaksi=async(data:Omit<Transaksi,"id"|"createdAt"|"updatedAt">):Promise<Transaksi>=>{
    return run(async()=>{
      const id=await saveFinancialTransaction(data);
-     await refreshTransaksi();
-     const row=allTransaksi.find(t=>t.id===id); // State may not have updated yet.
-     return row||{...data,id,nomorSPTB:"Nomor tersimpan di server",nomorKuitansi:"Nomor tersimpan di server",
-      createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()};
+     const fresh=await refreshTransaksi();
+     const row=fresh.find(t=>t.id===id);
+     if(!row) throw new Error("Transaksi tersimpan, tetapi belum muncul di daftar. Muat ulang untuk memastikan.");
+     return row;
    },"Transaksi berhasil disimpan di Supabase");
  };
  const updateTransaksi=async(id:string,updates:Partial<Transaksi>)=>{
