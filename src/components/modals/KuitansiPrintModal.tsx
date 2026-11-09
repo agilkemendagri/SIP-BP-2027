@@ -35,10 +35,10 @@ export const KuitansiPrintModal: React.FC = () => {
       kotaTandaTerima: 'Makassar',
       tanggalKuitansi: trx.tanggalKuitansi,
       tanggalIndo: formatTanggalIndo(trx.tanggalKuitansi),
-      ppkNama: trx.ppkNama || 'Saptono Gunason L, S.STP., M.Tr.AP.',
-      ppkNip: trx.ppkNip || '199811072020081001',
-      bppNama: trx.bendaharaNama || 'Muh. Anugrah Al-Giffary, S.M.',
-      bppNip: trx.bendaharaNip || '199906052019121001',
+      ppkNama: trx.ppkNama || '',
+      ppkNip: trx.ppkNip || '',
+      bppNama: trx.bendaharaNama || '',
+      bppNip: trx.bendaharaNip || '',
       penerimaList: trx.penerimaList,
       totalBruto: trx.totalBruto,
       totalPPh: trx.totalPPh,
@@ -171,10 +171,10 @@ export const KuitansiPrintModal: React.FC = () => {
                   sumberDana={trx.sumberDana}
                   kota="Makassar"
                   tanggalIndo={formatTanggalIndo(trx.tanggalKuitansi)}
-                  ppkNama={trx.ppkNama || 'Saptono Gunason L, S.STP., M.Tr.AP.'}
-                  ppkNip={trx.ppkNip || '199811072020081001'}
-                  bppNama={trx.bendaharaNama || 'Muh. Anugrah Al-Giffary, S.M.'}
-                  bppNip={trx.bendaharaNip || '199906052019121001'}
+                  ppkNama={trx.ppkNama || ''}
+                  ppkNip={trx.ppkNip || ''}
+                  bppNama={trx.bendaharaNama || ''}
+                  bppNip={trx.bendaharaNip || ''}
                   rows={trx.penerimaList.map((p, idx) => ({
                     id: p.id || `row-${idx}`,
                     nama: p.nama,
@@ -199,10 +199,10 @@ export const KuitansiPrintModal: React.FC = () => {
                   sumberDana={trx.sumberDana}
                   kota="Makassar"
                   tanggalIndo={formatTanggalIndo(trx.tanggalKuitansi)}
-                  ppkNama={trx.ppkNama || 'Saptono Gunason L, S.STP., M.Tr.AP.'}
-                  ppkNip={trx.ppkNip || '199811072020081001'}
-                  bppNama={trx.bendaharaNama || 'Muh. Anugrah Al-Giffary, S.M.'}
-                  bppNip={trx.bendaharaNip || '199906052019121001'}
+                  ppkNama={trx.ppkNama || ''}
+                  ppkNip={trx.ppkNip || ''}
+                  bppNama={trx.bendaharaNama || ''}
+                  bppNip={trx.bendaharaNip || ''}
                   sesiList={trx.penerimaList.map(p => ({
                     id: p.id,
                     uraianSesi: p.uraianItem || trx.uraian,
