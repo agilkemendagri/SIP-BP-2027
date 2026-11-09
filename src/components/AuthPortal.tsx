@@ -2,6 +2,7 @@ import React,{useEffect,useState} from "react";
 import {LockKeyhole,ShieldCheck,LogOut} from "lucide-react";
 import {type SipProfile,ownProfile,signInUsername,signOut,changeOwnPassword} from "../lib/sipBpAuth";
 import {SecureFinanceShell} from "./SecureFinanceShell";
+import {PrintStandaloneView} from "./kuitansi/PrintStandaloneView";
 
 export const AuthPortal:React.FC=()=>{
  const [profile,setProfile]=useState<SipProfile|null>(null);
@@ -37,6 +38,7 @@ export const AuthPortal:React.FC=()=>{
   finally{setBusy(false);}
  };
  if(profile&&!profile.wajib_ganti_password) {
+  if(new URLSearchParams(window.location.search).get("print")==="true")return <PrintStandaloneView/>;
   return <div>
    <div className="bg-slate-950 text-white px-4 py-2 text-xs flex items-center justify-between gap-3">
     <span><ShieldCheck size={13} className="inline mr-1"/>SIP-BP DEV · @{profile.username} · {profile.role==="bendahara"?"RM + PNBP":profile.role==="bpp_rm"?"RM":"PNBP"}</span>
