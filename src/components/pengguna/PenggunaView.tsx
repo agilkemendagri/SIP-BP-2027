@@ -4,7 +4,11 @@ import {listProfiles,adminAccount,type SipProfile} from "../../lib/sipBpAuth";
 import {useApp} from "../../context/AppContext";
 const roleText:{[k:string]:string}={bendahara:"Bendahara",bpp_rm:"BPP RM",bpp_pnbp:"BPP PNBP"};
 export const PenggunaView:React.FC=()=>{
- const {currentRole}=useApp();
+ const {currentRole,currentUser,updateOwnBendaharaProfile}=useApp();
+ const [ownForm,setOwnForm]=useState({nama_lengkap:currentUser.nama,nip:currentUser.nip,jabatan:currentUser.jabatan||"Bendahara Pengeluaran"});
+ const [savingOwn,setSavingOwn]=useState(false);
+ const [ownError,setOwnError]=useState("");
+ const [ownSuccess,setOwnSuccess]=useState("");
  const [users,setUsers]=useState<SipProfile[]>([]);
  const [busy,setBusy]=useState(false);
  const [error,setError]=useState("");
@@ -25,11 +29,42 @@ export const PenggunaView:React.FC=()=>{
    }catch(e){setError(e instanceof Error?e.message:"Perubahan tidak berhasil");return false;}
    finally{setBusy(false);}
  };
+ const saveOwnProfile=async(e:React.FormEvent)=>{
+  e.preventDefault();
+  setOwnError("");setOwnSuccess("");setSavingOwn(true);
+  try{
+   await updateOwnBendaharaProfile(ownForm);
+   setOwnSuccess("Identitas Bendahara berhasil disimpan. Header sudah diperbarui.");
+  }catch(e){setOwnError(e instanceof Error?e.message:"Gagal menyimpan profil Bendahara.");}
+  finally{setSavingOwn(false);}
+ };
  const create=async(e:React.FormEvent)=>{
    e.preventDefault();const ok=await action("create_bpp",form);
    if(ok)setForm({username:"",nama_lengkap:"",nip:"",jabatan:"",role:"bpp_rm"});
  };
  return <div className="space-y-5">
+  <section className="bg-white rounded-xl border border-blue-200 p-5 space-y-4">
+   <div>
+    <h2 className="text-lg font-bold text-slate-900 flex gap-2 items-center"><Shield size={20}/>Profil Bendahara Pengeluaran</h2>
+    <p className="text-xs text-slate-500 mt-1">Atur nama lengkap, NIP, dan jabatan Anda sendiri. Perubahan langsung muncul pada header aplikasi. Username dan hak akses tidak berubah.</p>
+   </div>
+   {ownError&&<div role="alert" className="rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-red-800 text-sm">{ownError}</div>}
+   {ownSuccess&&<div role="status" className="rounded-lg bg-emerald-50 border border-emerald-200 px-3 py-2 text-emerald-800 text-sm">{ownSuccess}</div>}
+   <form onSubmit={saveOwnProfile} className="space-y-3">
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+     <label className="block text-xs font-medium">Nama lengkap Bendahara
+      <input required minLength={3} maxLength={160} value={ownForm.nama_lengkap} onChange={e=>setOwnForm(v=>({...v,nama_lengkap:e.target.value}))} className="block w-full border rounded-lg p-2.5 mt-1" placeholder="Nama lengkap sesuai dokumen kepegawaian"/>
+     </label>
+     <label className="block text-xs font-medium">NIP (opsional, 18 digit)
+      <input inputMode="numeric" pattern="[0-9]{18}" maxLength={18} value={ownForm.nip} onChange={e=>setOwnForm(v=>({...v,nip:e.target.value}))} className="block w-full border rounded-lg p-2.5 mt-1" placeholder="Contoh: 198001012010011001"/>
+     </label>
+    </div>
+    <label className="block text-xs font-medium">Jabatan
+     <input required minLength={3} maxLength={160} value={ownForm.jabatan} onChange={e=>setOwnForm(v=>({...v,jabatan:e.target.value}))} className="block w-full border rounded-lg p-2.5 mt-1" placeholder="Bendahara Pengeluaran"/>
+    </label>
+    <button type="submit" disabled={savingOwn||busy} className="bg-blue-700 hover:bg-blue-800 text-white font-semibold px-4 py-2 rounded-lg text-sm disabled:opacity-50">{savingOwn?"Menyimpan...":"Simpan Profil Bendahara"}</button>
+   </form>
+  </section>
   <div className="bg-white rounded-xl border p-5 flex flex-wrap justify-between items-center gap-2">
    <div><h2 className="text-lg font-bold flex items-center gap-2"><Users size={20}/>Manajemen Akun BPP</h2>
     <p className="text-xs text-slate-500 mt-1">Akun login asli Supabase Auth · hanya Bendahara Pengeluaran</p>
