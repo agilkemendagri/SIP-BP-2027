@@ -91,3 +91,44 @@ body {
   .sppd-rampung-sheet .sppd-rampung-calc { break-inside: avoid !important; page-break-inside: avoid !important; }
   .sppd-rampung-sheet .sppd-signatures:last-child { break-before: avoid !important; }
 }
+
+/* SIP-BP: cetak SPPD Rampung pada ukuran fisik A4, bukan skala modal preview. */
+@media print {
+  .sppd-print-container {
+    display: block !important;
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    transform: none !important;
+    zoom: 1 !important;
+  }
+  .sppd-print-paper {
+    display: block !important;
+    width: 100% !important;
+    max-width: none !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    transform: none !important;
+    zoom: 1 !important;
+  }
+  .sppd-print-paper .sppd-rampung-sheet {
+    box-sizing: border-box !important;
+    width: 100% !important;
+    max-width: none !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    min-height: 0 !important;
+    transform: none !important;
+    zoom: 1 !important;
+    font-size: 10pt !important;
+    line-height: 1.35 !important;
+  }
+  .sppd-print-paper .sppd-rampung-sheet table { width: 100% !important; }
+}
