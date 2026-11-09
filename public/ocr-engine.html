@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net blob:; worker-src blob: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; connect-src https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://tessdata.projectnaptha.com; img-src blob: data:; style-src 'unsafe-inline';">
+<title>OCR kuitansi terisolasi</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/5.1.1/tesseract.min.js"></script>
+</head>
+<body>
+<script>
+"use strict";
+(function(){
+  const send=(message)=>parent.postMessage(message,"*");
+  const MAX_PAGES=5;
+  const MAX_BYTES=12*1024*1024;
+  let busy=false;
+  const progress=(nonce,stage,value)=>send({source:"sipbp-ocr",nonce,type:"progress",stage,value});
+  function joinText(items){
+    const byRow=new Map();
+    for(const item of items){
+      const str=String(item.str||"").trim();
+      if(!str)continue;
+      const xy=item.transform||[0,0,0,0,0,0];
+      const y=Math.round(xy[5]/3)*3;
+      if(!byRow.has(y))byRow.set(y,[]);
+      byRow.get(y).push({x:xy[4],str});
+    }
+    return [...byRow.entries()].sort((a,b)=>b[0]-a[0])
+      .map(([,cells])=>cells.sort((a,b)=>a.x-b.x).map(c=>c.str).join(" "))
+      .join("\n");
+  }
+  async function recognize(canvasOrBlob,worker){
+    const result=await worker.recognize(canvasOrBlob);
+    return result.data.text||"";
+  }
+  async function processFile(job){
+    const {nonce,name,mime,buffer}=job;
+    if(!(buffer instanceof ArrayBuffer)||buffer.byteLength>MAX_BYTES||buffer.byteLength===0)throw Error("Berkas tidak valid atau melebihi 12 MB.");
+    const pdf= mime==="application/pdf" || /\.pdf$/i.test(name);
+    if(!pdf&&!/^image\/(png|jpeg|webp)$/.test(mime))throw Error("Gunakan PDF, PNG, JPEG atau WEBP.");
+    if(!self.pdfjsLib || !self.Tesseract)throw Error("Pustaka OCR/PDF gratis gagal dimuat. Periksa koneksi ke CDN.");
+    let ocrWorker;
+    const getWorker=async()=>{
+      if(!ocrWorker){
+        progress(nonce,"Menyiapkan OCR bahasa Indonesia",0);
+        try{ocrWorker=await Tesseract.createWorker("ind+eng",1,{
+          logger:x=>{if(x.status)progress(nonce,x.status,Math.round((x.progress||0)*100));}
+        });}
+        catch(e){ocrWorker=await Tesseract.createWorker("eng");}
+      }
+      return ocrWorker;
+    };
+    try {
+      if(!pdf){
+        progress(nonce,"Membaca gambar",0);
+        const blob=new Blob([buffer],{type:mime});
+        const objectUrl=URL.createObjectURL(blob);
+        try{return {text:await recognize(objectUrl,await getWorker()),pages:1,mode:"ocr"};}
+        finally{URL.revokeObjectURL(objectUrl);}
+      }
+      pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+      progress(nonce,"Membuka PDF",0);
+      const doc=await pdfjsLib.getDocument({data:new Uint8Array(buffer),isEvalSupported:false,useSystemFonts:true}).promise;
+      const pages=Math.min(doc.numPages,MAX_PAGES);
+      const results=[];
+      let usedOcr=false;
+      for(let i=1;i<=pages;i++){
+        const page=await doc.getPage(i);
+        const extracted=joinText((await page.getTextContent()).items);
+        if(extracted.replace(/\s+/g,"").length>=65){
+          results.push(extracted);
+        } else {
+          usedOcr=true;
+          progress(nonce,"OCR PDF halaman "+i+"/"+pages,Math.round(i/pages*100));
+          const viewport=page.getViewport({scale:1.8});
+          if(viewport.width*viewport.height>18000000)throw Error("Halaman terlalu besar untuk OCR lokal.");
+          const canvas=document.createElement("canvas");
+          canvas.width=Math.round(viewport.width);canvas.height=Math.round(viewport.height);
+          const ctx=canvas.getContext("2d",{willReadFrequently:true});
+          if(!ctx)throw Error("Canvas browser tidak tersedia.");
+          await page.render({canvasContext:ctx,viewport}).promise;
+          results.push(await recognize(canvas,await getWorker()));
+          canvas.width=0;canvas.height=0;
+        }
+        progress(nonce,"Memproses halaman "+i+"/"+pages,Math.round(i/pages*100));
+      }
+      return {text:results.join("\n--- HALAMAN ---\n"),pages,mode:usedOcr?"pdf+ocr":"pdf-text",truncated:doc.numPages>pages};
+    } finally {
+      if(ocrWorker)await ocrWorker.terminate().catch(()=>{});
+    }
+  }
+  window.addEventListener("message",async event=>{
+    // In a unique-origin sandbox. Only the embedding window may submit files.
+    if(event.source!==parent||busy)return;
+    const data=event.data;
+    if(!data||data.type!=="sipbp-ocr-file"||typeof data.nonce!=="string"||data.nonce.length>96)return;
+    busy=true;
+    try{
+      const result=await processFile(data);
+      send({source:"sipbp-ocr",type:"result",nonce:data.nonce,...result});
+    }catch(error){
+      send({source:"sipbp-ocr",type:"error",nonce:data.nonce,message:error instanceof Error?error.message:"OCR tidak berhasil"});
+    }finally{busy=false;}
+  });
+  send({source:"sipbp-ocr",type:"ready"});
+})();
+</script>
+</body>
+</html>
