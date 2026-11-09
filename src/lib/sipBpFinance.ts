@@ -66,8 +66,39 @@ export async function fetchFinancialTransactions():Promise<Transaksi[]> {
  }
  throw new Error("Batas pembacaan 20.000 transaksi tercapai. Gunakan filter server.");
 }
+// Reconcile document-level travel taxes with item-level detail before server validation.
+// The server remains authoritative and independently validates all monetary amounts.
+function reconcileFinanceLines(data:Omit<Transaksi,"id"|"createdAt"|"updatedAt">|Transaksi) {
+ const source=data.penerimaList||[];
+ if(!source.length)throw new Error("Minimal satu penerima/rincian diperlukan.");
+ const rows=source.map(p=>({...p}));
+ const bruto=rows.reduce((n,p)=>n+Number(p.bruto||0),0);
+ if(Math.abs(bruto-Number(data.totalBruto||0))>1)
+   throw new Error("Jumlah bruto rincian tidak cocok dengan total kuitansi.");
+ for(const [field,target] of [["ppnNominal",Number(data.totalPPN||0)],["pphNominal",Number(data.totalPPh||0)]] as const){
+  const actual=rows.reduce((n,p)=>n+Number(p[field]||0),0);
+  const difference=Math.round((target-actual)*100)/100;
+  if(Math.abs(difference)<0.01)continue;
+  if(Math.abs(difference)<=rows.length) {
+   const last=rows[rows.length-1];
+   (last as any)[field]=Number(((Number(last[field]||0))+difference).toFixed(2));
+  }else if(actual===0&&target>0&&bruto>0) {
+   let allocated=0;
+   rows.forEach((p,i)=>{
+    const tax=i===rows.length-1?target-allocated:Math.round(target*Number(p.bruto||0)/bruto*100)/100;
+    (p as any)[field]=tax;allocated+=tax;
+   });
+  }else throw new Error("Jumlah pajak rincian tidak sesuai total dokumen. Koreksi rincian sebelum menyimpan.");
+ }
+ rows.forEach(p=>{p.netto=Number((Number(p.bruto||0)-Number(p.ppnNominal||0)-Number(p.pphNominal||0)).toFixed(2));});
+ const net=rows.reduce((n,p)=>n+p.netto,0);
+ if(net<0||Math.abs(net-Number(data.totalNetto||0))>Math.max(1,rows.length))
+   throw new Error("Jumlah netto tidak cocok dengan bruto dikurangi pajak.");
+ return rows;
+}
+
 export async function saveFinancialTransaction(data:Omit<Transaksi,"id"|"createdAt"|"updatedAt">|Transaksi,existingId?:string) {
- const payload:any={...data};
+ const payload:any={...data,penerimaList:reconcileFinanceLines(data)};
  // The backend assigns SPTB numbers; client-provided numbers are ignored.
  delete payload.nomorSPTB;delete payload.nomorKuitansi;
  delete payload.sudahSakti;delete payload.tanggalSakti;
