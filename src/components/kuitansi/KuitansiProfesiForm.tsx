@@ -562,6 +562,9 @@ export const KuitansiProfesiForm: React.FC = () => {
 
     setEditingTransaksi(null);
     setActiveView('transaksi');
+    } catch (error) {
+      // Keep the form open when the server rejects the operation.
+    }
   };
 
   const printAreaRef = React.useRef<HTMLDivElement>(null);
