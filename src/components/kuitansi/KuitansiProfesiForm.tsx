@@ -70,18 +70,14 @@ export const KuitansiProfesiForm: React.FC = () => {
   const [jenisDokumen, setJenisDokumen] = useState<'INDIVIDUAL' | 'KOLEKTIF'>('INDIVIDUAL');
 
   // Sumber Dana (RM / PNBP)
-  const defaultSumberDana: SumberDana = currentRole === 'bpp_pnbp' ? 'PNBP' : 'PNBP'; // Default to PNBP as in reference PDF
+  const defaultSumberDana: SumberDana = currentRole === 'bpp_pnbp' ? 'PNBP' : 'RM';
   const [sumberDana, setSumberDana] = useState<SumberDana>(defaultSumberDana);
 
   // Tanggal Kuitansi & Kode Akun
-  const [tanggalKuitansi, setTanggalKuitansi] = useState<string>('2026-09-01');
+  const [tanggalKuitansi, setTanggalKuitansi] = useState<string>(new Date().toISOString().slice(0,10));
   const [kodeAkun, setKodeAkun] = useState<string>('522151'); // Belanja Jasa Profesi
-  const [kegiatan, setKegiatan] = useState<string>(
-    'Pelatihan Kepemimpinan Administrator (PKA) Angkatan III'
-  );
-  const [uraianUmum, setUraianUmum] = useState<string>(
-    'Honor pemateri pembekalan STULA 6 Agustus pada PKA Akt. III'
-  );
+  const [kegiatan, setKegiatan] = useState<string>('');
+  const [uraianUmum, setUraianUmum] = useState<string>('');
 
   // Konfigurasi Pejabat & Lokasi (Dapat dikonfigurasi, default mengikuti referensi PDF)
   const [showPejabatConfig, setShowPejabatConfig] = useState<boolean>(false);
@@ -90,36 +86,30 @@ export const KuitansiProfesiForm: React.FC = () => {
     'Balai Besar Pengembangan Kompetensi Aparatur Pemerintahan Dalam Negeri IV'
   );
   const [namaSatkerPendek, setNamaSatkerPendek] = useState<string>('BBPK APDN IV');
-  const [ppkNama, setPpkNama] = useState<string>('Saptono Gunason L, S.STP., M.Tr.AP.');
-  const [ppkNip, setPpkNip] = useState<string>('199811072020081001');
-  const [bppNama, setBppNama] = useState<string>('Muh. Anugrah Al-Giffary, S.M.');
-  const [bppNip, setBppNip] = useState<string>('199906052019121001');
+  const [ppkNama, setPpkNama] = useState<string>('');
+  const [ppkNip, setPpkNip] = useState<string>('');
+  const [bppNama, setBppNama] = useState<string>('');
+  const [bppNip, setBppNip] = useState<string>('');
 
   // ==========================================
   // STATE MODE 1: INDIVIDUAL
   // ==========================================
   const [klasifikasiPenerima, setKlasifikasiPenerima] = useState<'ASN' | 'NON_ASN'>('NON_ASN');
-  const [namaPenerima, setNamaPenerima] = useState<string>('Hamzah, S.Sos., MM.');
+  const [namaPenerima, setNamaPenerima] = useState<string>('');
   const [nipPenerima, setNipPenerima] = useState<string>('-');
-  const [golonganPenerima, setGolonganPenerima] = useState<string>('Non-ASN / Praktisi');
-  const [jabatanPenerima, setJabatanPenerima] = useState<string>('Pemateri Pembekalan STULA');
+  const [golonganPenerima, setGolonganPenerima] = useState<string>('');
+  const [jabatanPenerima, setJabatanPenerima] = useState<string>('');
   const [npwp, setNpwp] = useState<string>('');
-  const [rekening, setRekening] = useState<string>('152001928371');
-  const [bank, setBank] = useState<string>('Bank Mandiri');
+  const [rekening, setRekening] = useState<string>('');
+  const [bank, setBank] = useState<string>('');
 
   // Sesi Honorarium Individual (Tabel Dinamis)
   // Default data sesuai validasi: 3 JP x Rp 200.000 = Bruto Rp 600.000, PPh Rp 90.000 (15%), Netto Rp 510.000
   const [sesiIndividual, setSesiIndividual] = useState<SesiHonorItem[]>([
-    {
-      id: 'sesi-indiv-1',
-      uraianSesi: 'Honor pemateri pembekalan STULA 6 Agustus pada PKA Akt. III',
-      volume: 3,
-      satuan: 'JP',
-      tarifSatuan: 200000,
-    },
+    {id:"sesi-indiv-1",uraianSesi:"",volume:1,satuan:"JP",tarifSatuan:0}
   ]);
 
-  const [pphRateIndiv, setPphRateIndiv] = useState<number>(15);
+  const [pphRateIndiv, setPphRateIndiv] = useState<number>(0);
   const [customPphNominalIndiv, setCustomPphNominalIndiv] = useState<number | null>(null);
   const [ppnRateIndiv, setPpnRateIndiv] = useState<number>(0);
 
@@ -155,61 +145,7 @@ export const KuitansiProfesiForm: React.FC = () => {
   // ==========================================
   // Default data kolektif diambil dari PDF 2 referensi untuk validasi langsung
   const [rowsKolektif, setRowsKolektif] = useState<KolektifInputRow[]>([
-    {
-      id: 'kol-1',
-      nama: 'Hamzah, S.Sos., MM.',
-      nip: '-',
-      golongan: 'Non-ASN',
-      untukPembayaran: 'Honor pemateri pembekalan STULA 6 Agustus pada PKA Akt. III',
-      jp: 3,
-      tarifSatuan: 200000,
-      pphRate: 15,
-      customPphNominal: 90000,
-    },
-    {
-      id: 'kol-2',
-      nama: 'Dr. Hj. Dinarwati, S.E., M.M.',
-      nip: '19740510 199903 2 001',
-      golongan: 'IV/b',
-      untukPembayaran: 'Honor pemateri agenda I 10-11 Juli pada PKA Akt. III',
-      jp: 4,
-      tarifSatuan: 200000,
-      pphRate: 15,
-      customPphNominal: 120000,
-    },
-    {
-      id: 'kol-3',
-      nama: 'Dr. Hj. Dinarwati, S.E., M.M.',
-      nip: '19740510 199903 2 001',
-      golongan: 'IV/b',
-      untukPembayaran: 'Honor pemateri agenda II 13-15 Juli pada PKA Akt. III',
-      jp: 6,
-      tarifSatuan: 200000,
-      pphRate: 15,
-      customPphNominal: 180000,
-    },
-    {
-      id: 'kol-4',
-      nama: 'Dr. Hj. Dinarwati, S.E., M.M.',
-      nip: '19740510 199903 2 001',
-      golongan: 'IV/b',
-      untukPembayaran: 'Honor pemateri agenda III 16-18 Juli pada PKA Akt. III',
-      jp: 9,
-      tarifSatuan: 200000,
-      pphRate: 15,
-      customPphNominal: 270000,
-    },
-    {
-      id: 'kol-5',
-      nama: 'Dr. Hj. Dinarwati, S.E., M.M.',
-      nip: '19740510 199903 2 001',
-      golongan: 'IV/b',
-      untukPembayaran: 'Honor pemateri konsepsi pembelajaran AP 23-24 Julli pada PKA Akt. III',
-      jp: 6,
-      tarifSatuan: 200000,
-      pphRate: 15,
-      customPphNominal: 180000,
-    },
+    {id:"kol-1",nama:"",nip:"",golongan:"",untukPembayaran:"",jp:1,tarifSatuan:0,pphRate:0,customPphNominal:null}
   ]);
 
   // Perhitungan Baris Kolektif (Reaktif & Tanpa Perhitungan Ganda)
@@ -891,7 +827,7 @@ export const KuitansiProfesiForm: React.FC = () => {
                 type="text"
                 value={uraianUmum}
                 onChange={e => setUraianUmum(e.target.value)}
-                placeholder="Honor pemateri pembekalan STULA 6 Agustus pada PKA Akt. III"
+                placeholder=""
                 className="w-full px-3 py-2 text-xs rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
               />
             </div>
@@ -940,7 +876,7 @@ export const KuitansiProfesiForm: React.FC = () => {
                     type="text"
                     value={namaPenerima}
                     onChange={e => setNamaPenerima(e.target.value)}
-                    placeholder="Contoh: Hamzah, S.Sos., MM."
+                    placeholder="Contoh: "
                     className="w-full px-3 py-2 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 font-medium"
                   />
                 </div>
