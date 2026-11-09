@@ -4,6 +4,7 @@
  */
 
 import React from 'react';
+import { isCollectiveReceipt } from '../../utils/receiptKind';
 import { useApp } from '../../context/AppContext';
 import { formatRupiah, formatTanggalIndo, terbilang } from '../../utils/formatters';
 import { TandaTerimaIndividual } from '../kuitansi/templates/TandaTerimaIndividual';
@@ -20,7 +21,7 @@ export const KuitansiPrintModal: React.FC = () => {
 
   const trx = previewKuitansi;
   const isJasaProfesi = trx.jenisKuitansi === 'jasa_profesi';
-  const isKolektif = trx.penerimaList.length > 1 && new Set(trx.penerimaList.map(p => p.nama)).size > 1;
+  const isKolektif = isCollectiveReceipt(trx.penerimaList);
 
   const preparePrintData = () => {
     const payload = {
