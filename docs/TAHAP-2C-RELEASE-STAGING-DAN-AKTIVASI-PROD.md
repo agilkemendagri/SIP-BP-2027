@@ -1,6 +1,6 @@
 # SIP-BP — Tahap 2C: Integrasi Production dan gerbang aktivasi
 
-Tanggal verifikasi: 10 November 2026. **Status: STAGING SIAP, GO-LIVE DITAHAN**.
+Tanggal verifikasi: 10 November 2026. **Status: STAGING SIAP, AKUN BENDAHARA PROD DITAUTKAN, GO-LIVE DITAHAN UNTUK UAT.**
 
 ## Komponen yang sudah diterapkan
 - Database terpisah: `SIP-BP-PROD` (`iozswrpnrataffgtaoki`), region Singapore, 7 migrasi terpasang.
@@ -12,7 +12,7 @@ Tanggal verifikasi: 10 November 2026. **Status: STAGING SIAP, GO-LIVE DITAHAN**.
 - GitHub Actions typecheck, unit test, dan Vite build diperiksa pada branch pengembangan.
 
 ## Tindakan minimum untuk aktivasi Bendahara pertama (harus melalui pemilik akun Supabase)
-Saat migrasi 2B dan pemasangan 2C, `auth.users=0` dan `public.profiles=0`. **Tidak boleh melakukan INSERT manual ke tabel internal `auth.users`** karena menabrak alur Supabase Auth; jangan memasang endpoint bootstrap admin publik.
+Saat migrasi 2B, `auth.users=0` dan `public.profiles=0`. **Pada 10 November 2026 pengguna menyatakan telah membuat akun awal melalui dashboard Supabase.** Pemeriksaan lanjutan menemukan tepat 1 pengguna Auth yang emailnya sudah dikonfirmasi, bukan anonim, dan tidak diblokir; profil `bendahara` ditautkan, dengan `wajib_ganti_password=true`. **Tidak ada INSERT manual ke tabel internal `auth.users`**, dan endpoint bootstrap admin publik tidak dibuat.
 
 1. Pemilik proyek membuka `https://supabase.com/dashboard/project/iozswrpnrataffgtaoki/auth/users`.
 2. Gunakan **Add user** / **Create new user** di Supabase Dashboard, dengan **email institusi aktif yang memang dikuasai Bendahara** dan password sementara kuat, unik, panjang. Pastikan email dikonfirmasi (Dashboard memiliki opsi konfirmasi). **Jangan kirim password ke ChatGPT, GitHub, atau repository**.
@@ -30,7 +30,7 @@ order by u.created_at;
 ```
 
 ## Mengapa domain utama belum diganti
-- Akun Bendahara pertama Production **belum dibentuk**; jika deploy sekarang, seluruh pengguna akan terjebak di layar login.
+- Akun Bendahara pertama Production sudah ditautkan, tetapi **belum diuji login dan penggantian password melalui browser**; jangan menyatakan autentikasi end-to-end sudah lulus.
 - Cetakan kuitansi/SPTB dan kontrol pengguna belum diuji end-to-end pada Production.
 - Backup dan pemulihan data keuangan belum diverifikasi.
 - Vercel Hobby $0 dibatasi untuk penggunaan **personal/nonkomersial** menurut ketentuan layanannya. Operasional institusi pemerintah perlu penilaian kesesuaian lisensi/persetujuan sebelum go-live; jangan mengasumsikan paket Hobby dapat digunakan untuk kebutuhan instansi hanya karena tidak dipungut biaya.
@@ -41,7 +41,7 @@ order by u.created_at;
 - [x] Variabel Production hanya memuat kunci publishable PROD
 - [x] Dev dan Production env/scoped build dipisahkan
 - [x] Staging dibangun dari kandidat release
-- [ ] Akun Bendahara Production terverifikasi dan profilnya terikat
+- [x] Akun Bendahara Production terverifikasi (1 pengguna Auth, email dikonfirmasi), profil `bendahara` dibuat (aktif, wajib_ganti_password=true), akun dapat membaca profil sendiri melalui uji RLS, tanpa menyalin data DEV. Tidak ada password yang dibaca atau dicatat.
 - [ ] Auth signup publik dan kebijakan login Production diverifikasi
 - [ ] UAT aplikasi melalui browser dan cetak SPTB/kuitansi
 - [ ] Backup/restore sesuai kebutuhan keuangan
@@ -49,3 +49,10 @@ order by u.created_at;
 - [ ] Setelah semua lulus, merge PR release ke `main`, deploy Vercel Production, lalu lanjut Tahap 2D
 
 **Catatan:** Staging yang tersambung ke PROD adalah untuk pemeriksaan akun/tampilan saja; jangan gunakan data keuangan resmi sebelum ada otorisasi go-live.
+
+## Pembaruan setelah pembuatan akun (10 November 2026)
+- Supabase PROD: `auth.users=1`, `profiles=1`, `transaksi=0`.
+- Profil akun username `bendahara`, role `bendahara`, `aktif=true`, `wajib_ganti_password=true`.
+- Pemeriksaan RLS sebagai pengguna terautentikasi dengan UUID akun tersebut: profil Bendahara dapat dibaca. Pengujian SQL dibatalkan via `ROLLBACK`.
+- Supabase organisasi `agilkemendagri` tetap paket **Free**; tidak ada layanan berbayar yang diaktifkan.
+- Langkah berikutnya: login menggunakan **email institusi yang didaftarkan di Supabase Auth** pada staging; ganti password yang diwajibkan; verifikasi akses dashboard/rekap/cetak, backup, kebijakan signup. Tidak perlu membagikan password di percakapan.
