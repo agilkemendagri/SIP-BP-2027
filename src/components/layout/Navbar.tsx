@@ -77,7 +77,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleMobileMenu }) => {
         </div>
 
         {/* User Identity Chip */}
-        <div className="hidden md:flex items-center gap-2.5 pl-3 border-l border-slate-200 text-xs">
+        <button type="button" onClick={()=>setActiveView('pengguna')} disabled={currentRole!=="bendahara"} title={currentRole==="bendahara"?"Atur nama, NIP dan jabatan Bendahara":"Profil pengguna"} className="hidden md:flex items-center gap-2.5 pl-3 border-l border-slate-200 text-xs text-left disabled:cursor-default enabled:hover:bg-blue-50 rounded-lg p-1 transition-colors">
           <div className="w-8 h-8 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-600 font-semibold text-xs">
             {currentUser.nama
               .split(' ')
@@ -91,10 +91,10 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleMobileMenu }) => {
               {currentUser.nama}
             </span>
             <span className="text-[10px] text-slate-600 font-mono">
-              NIP: {currentUser.nip.split(' ')[0]}...
+              {currentUser.nip ? `NIP: ${currentUser.nip}` : "NIP belum diisi"}
             </span>
           </div>
-        </div>
+        </button>
 
         {/* Quick Kuitansi Trigger Button */}
         <button
