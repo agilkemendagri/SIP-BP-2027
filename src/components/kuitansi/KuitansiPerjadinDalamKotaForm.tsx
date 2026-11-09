@@ -90,7 +90,7 @@ export const KuitansiPerjadinDalamKotaForm: React.FC = () => {
       tarifSatuan: 150000,
       pphRate: 0,
       rekening: '',
-      bank: 'Bank Mandiri',
+      bank: '',
     };
     setRecipients(prev => [...prev, newRow]);
   };
