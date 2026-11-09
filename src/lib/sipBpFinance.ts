@@ -115,9 +115,33 @@ export async function changeFinancialStatus(id:string,status:"Draft"|"Final") {
 export async function deleteFinancialTransaction(id:string) {
  await financeRpc("sip_bp_delete_transaction",{p_id:id});
 }
-export async function bulkMarkFinancialSakti(ids:string[]) {
- if(ids.length<1||ids.length>100) throw new Error("Penandaan SAKTI maksimal 100 transaksi");
- return financeRpc("sip_bp_mark_sakti",{p_ids:ids});
+export interface SaktiBatchReport {
+ succeeded: string[];
+ failed: { id: string; message: string }[];
+}
+/**
+ * Prefer one atomic server request. A mixed invalid batch falls back to
+ * individual requests; the UI can then report exact successes and failures.
+ */
+export async function bulkMarkFinancialSakti(ids:string[]):Promise<SaktiBatchReport> {
+ if(ids.length<1||ids.length>100 || new Set(ids).size!==ids.length)
+   throw new Error("Pilih 1 sampai 100 transaksi tanpa duplikasi");
+ try {
+   await financeRpc("sip_bp_mark_sakti",{p_ids:ids});
+   return {succeeded:[...ids],failed:[]};
+ } catch {
+   const succeeded:string[]=[];
+   const failed:SaktiBatchReport["failed"]=[];
+   for(const id of ids) {
+     try {
+       await financeRpc("sip_bp_mark_sakti",{p_ids:[id]});
+       succeeded.push(id);
+     }catch(err) {
+       failed.push({id,message:err instanceof Error?err.message:"Ditolak server"});
+     }
+   }
+   return {succeeded,failed};
+ }
 }
 export async function unlockFinancialSakti(id:string,reason:string) {
  return financeRpc("sip_bp_unlock_sakti",{p_id:id,p_reason:reason});
