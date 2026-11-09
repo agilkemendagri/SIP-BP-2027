@@ -133,7 +133,7 @@ export const KuitansiPerjadinLuarKotaForm: React.FC = () => {
     return `KUI/${dana}/${year}/${month}/0${randomSeq}`;
   };
 
-  const handleSubmit = (targetStatus: 'Draft' | 'Final') => {
+  const handleSubmit = async (targetStatus: 'Draft' | 'Final') => {
     if (!namaPelaksana.trim() || !kegiatan.trim() || totalBruto <= 0) {
       showToast('Harap lengkapi nama pelaksana, kegiatan, dan rincian biaya!', 'warning');
       return;
@@ -163,7 +163,8 @@ export const KuitansiPerjadinLuarKotaForm: React.FC = () => {
       };
     });
 
-    addTransaksi({
+    try {
+    await addTransaksi({
       nomorKuitansi: generateNomorKuitansi(sumberDana, tanggalKuitansi),
       nomorSPTB: generateNomorSptb(sumberDana, tanggalKuitansi),
       tanggalKuitansi,
@@ -181,10 +182,10 @@ export const KuitansiPerjadinLuarKotaForm: React.FC = () => {
       totalNetto,
       status: targetStatus,
       sudahSakti: false,
-      ppkNama: 'Ir. Bambang Hermanto, M.M.',
-      ppkNip: '19780512 200312 1 002',
-      bendaharaNama: 'Siti Aminah, S.E., M.Ak.',
-      bendaharaNip: '19850410 200901 2 004',
+      ppkNama: '',
+      ppkNip: '',
+      bendaharaNama: '',
+      bendaharaNip: '',
       suratTugasNomor,
       tanggalTugas,
       kotaAsal,
@@ -192,6 +193,9 @@ export const KuitansiPerjadinLuarKotaForm: React.FC = () => {
     });
 
     setActiveView('transaksi');
+    } catch (error) {
+      // Error already surfaced by AppContext; keep the form open so users can correct it.
+    }
   };
 
   return (
