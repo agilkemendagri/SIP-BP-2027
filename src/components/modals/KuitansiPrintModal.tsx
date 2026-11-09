@@ -227,7 +227,7 @@ export const KuitansiPrintModal: React.FC = () => {
                       BBPKA PDN IV
                     </div>
                     <div className="text-xs sm:text-sm font-bold text-slate-950 uppercase tracking-tight">
-                      Balai Besar Pengawasan Keuangan dan Aset Perdagangan Dalam Negeri IV
+                      Balai Besar Pengembangan Kompetensi Aparatur Pemerintahan Dalam Negeri IV
                     </div>
                   </div>
                   <div className="text-right font-mono text-xs">
