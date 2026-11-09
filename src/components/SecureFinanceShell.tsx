@@ -50,4 +50,4 @@ function Content(){
   <PilihJenisKuitansiModal/><KuitansiPrintModal/><SptbPrintModal/><BulkSaktiModal/><ToastContainer/>
  </div>;
 }
-export const SecureFinanceShell:React.FC<{profile:SipProfile}>=({profile})=><AppProvider authenticatedProfile={profile}><Content/></AppProvider>;
+export const SecureFinanceShell:React.FC<{profile:SipProfile;onProfileUpdated:(profile:SipProfile)=>void}>=({profile,onProfileUpdated})=><AppProvider authenticatedProfile={profile} onProfileUpdated={onProfileUpdated}><Content/></AppProvider>;
