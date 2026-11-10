@@ -69,7 +69,11 @@ export function parseOutsideTravelReceipt(text:string):ParsedReceipt|null{
  if(headerDate&&receiptDate&&headerDate.slice(0,4)!==receiptDate.slice(0,4))warnings.push('Tahun tanggal SPPD ('+headerDate+') berbeda dari tanggal kuitansi ('+receiptDate+'); pastikan tanggal sumber benar.');
  if(!receiver)warnings.push('Nama penerima perjalanan tidak terbaca jelas; lengkapi sebelum menyimpan.');
  const parsed=finalize(input,rows,receiptDate,expected,warnings,nomor);
- return {...parsed,tanggalSppd:headerDate};
+ const paidLine=lines.find(x=>/Yang telah dibayar semula/i.test(x))||'';
+ const balanceLine=lines.find(x=>/Sisa Kurang\/Lebih/i.test(x))||'';
+ const paid=tokenMoney(paidLine).at(-1)?.value;
+ const balance=tokenMoney(balanceLine).at(-1)?.value;
+ return {...parsed,tanggalSppd:headerDate,telahDibayarSemula:paid,sisaKurangLebih:balance??(balanceLine.includes('-')?0:undefined)};
 }
 export function parseInsideTravelReceipt(text:string):ParsedReceipt|null{
  const input=text.replace(/\r/g,'').replace(/[\u00a0\u2007]/g,' ');
