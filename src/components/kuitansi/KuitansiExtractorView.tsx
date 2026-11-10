@@ -3,6 +3,8 @@ import {FileScan,Upload,ShieldCheck,AlertTriangle,Plus,Trash2,RefreshCw,FileText
 import {useApp} from '../../context/AppContext';
 import {usePejabatSettings,signerForFunding} from '../../context/PejabatSettingsContext';
 import {parseReceiptText,type ImportedRow} from '../../utils/receiptExtractor';
+import {parseProfessionReceipt} from '../../utils/professionReceiptParser';
+import type {ExtractedReceiptData} from './KuitansiWithExtractor';
 import type {SumberDana,KuitansiType} from '../../types';
 
 const money=(n:number)=>new Intl.NumberFormat('id-ID').format(n||0);
@@ -10,13 +12,14 @@ const freshRow=():ImportedRow=>({id:crypto.randomUUID(),nama:'',uraianItem:'',vo
 const fileTypes=['image/png','image/jpeg','image/webp','application/pdf'];
 const maxBytes=12*1024*1024;
 
-export const KuitansiExtractorView:React.FC<{fixedType?:KuitansiType}>=({fixedType})=>{
+export const KuitansiExtractorView:React.FC<{fixedType?:KuitansiType;onApplyToForm?:(data:ExtractedReceiptData)=>void}>=({fixedType,onApplyToForm})=>{
  const {currentRole,addTransaksi,setActiveView,visibleTransaksi}=useApp();
  const {value:pejabat,ready:pejabatReady,error:pejabatError}=usePejabatSettings();
  const frame=useRef<HTMLIFrameElement>(null);
  const pending=useRef<{nonce:string;file:File}|null>(null);
  const ready=useRef(false);
  const [fileName,setFileName]=useState('');
+ const [dragging,setDragging]=useState(false);
  const [isBusy,setIsBusy]=useState(false);
  const [status,setStatus]=useState('Siap menerima gambar/PDF. Proses OCR hanya berjalan setelah Anda memilih file.');
  const [error,setError]=useState('');
@@ -44,12 +47,12 @@ export const KuitansiExtractorView:React.FC<{fixedType?:KuitansiType}>=({fixedTy
  }),{bruto:0,ppn:0,pph:0,netto:0}),[rows]);
  const applyText=(raw:string)=>{
   setText(raw);
-  const parsed=parseReceiptText(raw);
+  const parsed=(fixedType==='jasa_profesi'?parseProfessionReceipt(raw):null)||parseReceiptText(raw);
   setRows(parsed.rows);
   setWarnings(parsed.warnings);
   setDate(parsed.tanggalKuitansi);
   setAccount(parsed.kodeAkun);
-  setActivity(parsed.kegiatan);
+  setActivity(parsed.kegiatan||parsed.rows.map(r=>r.uraianItem).filter(Boolean).join('; '));
   setSourceNumber(parsed.nomorAsal);
   setDescription(parsed.rows[0]?.uraianItem||'');
   setConfirmed(false);
@@ -111,7 +114,7 @@ export const KuitansiExtractorView:React.FC<{fixedType?:KuitansiType}>=({fixedTy
   if(!confirmed){setError('Centang konfirmasi hasil pemeriksaan sebelum menyimpan.');return;}
   if(!/^\d{6}$/.test(account)){setError('Kode akun harus 6 digit sesuai dokumen anggaran.');return;}
   if(!/^20\d{2}-\d{2}-\d{2}$/.test(date)){setError('Tanggal kuitansi wajib valid (YYYY-MM-DD).');return;}
-  if(!activity.trim()){setError('Nama kegiatan wajib diisi.');return;}
+  if(!activity.trim()&&!rows.some(r=>r.uraianItem.trim())){setError('Uraian rincian kuitansi wajib diisi.');return;}
   if(!rows.length){setError('Minimal ada satu baris rincian kuitansi.');return;}
   if(rows.some(r=>!r.nama.trim()||!r.uraianItem.trim()||r.bruto<=0||r.volume<=0||r.tarifSatuan<0||r.netto<0)){
    setError('Lengkapi nama, uraian, volume, dan nominal setiap baris.');return;
@@ -137,7 +140,7 @@ export const KuitansiExtractorView:React.FC<{fixedType?:KuitansiType}>=({fixedTy
    }));
    await addTransaksi({
     nomorKuitansi:'',nomorSPTB:'',tanggalKuitansi:date,sumberDana:source,jenisKuitansi:type,
-    kegiatan:activity.trim(),kodeAkun:account,namaAkun:accountName.trim(),
+    kegiatan:activity.trim()||penerimaList[0].uraianItem,kodeAkun:account,namaAkun:accountName.trim(),
     uraian:(description.trim()||penerimaList[0].uraianItem)+(sourceNumber?' [Dokumen luar: '+sourceNumber+']':''),
     ringkasanPenerima:penerimaList.length===1?penerimaList[0].nama:penerimaList[0].nama+' dkk.',
     penerimaList,totalBruto:sum.bruto,totalPPN:sum.ppn,totalPPh:sum.pph,totalNetto:sum.netto,
@@ -154,6 +157,13 @@ export const KuitansiExtractorView:React.FC<{fixedType?:KuitansiType}>=({fixedTy
   <div className="bg-white rounded-xl border border-slate-200 p-5">
    <h2 className="font-bold text-lg flex items-center gap-2"><FileScan className="text-blue-700" size={22}/>{fixedType==='jasa_profesi'?'Ekstraktor Kuitansi Jasa Profesi':fixedType==='perjadin_luar_kota'?'Ekstraktor Kuitansi Perjadin Luar Kota':fixedType==='perjadin_dalam_kota'?'Ekstraktor Kuitansi Perjadin Dalam Kota':'Ekstraktor Kuitansi dari Luar SIP-BP'}</h2>
    <p className="text-sm text-slate-600 mt-1">Unggah kuitansi kolektif/individual yang sudah dibuat di luar SIP-BP. Hasil OCR adalah draf pemeriksaan, bukan bukti transaksi yang telah diverifikasi.</p>
+   <div tabIndex={0} aria-label="Area unggah kuitansi: seret berkas ke sini atau tempel screenshot Ctrl+V"
+      onDragOver={e=>{e.preventDefault();setDragging(true);}}
+      onDragLeave={e=>{e.preventDefault();setDragging(false);}}
+      onDrop={e=>{e.preventDefault();setDragging(false);if(!isBusy&&!saving)selectFile(e.dataTransfer.files[0]);}}
+      onPaste={e=>{const file=Array.from(e.clipboardData.files).find(f=>f.type.startsWith('image/'));if(file){e.preventDefault();if(!isBusy&&!saving)selectFile(file);}}}
+      className={`mt-4 rounded-xl border-2 border-dashed p-4 outline-none focus:ring-2 focus:ring-blue-500 ${dragging?'border-blue-600 bg-blue-50':'border-slate-300 bg-slate-50'}`}>
+   <p className="text-sm text-slate-700 font-medium">Seret PDF/gambar ke sini, klik pilih berkas, atau fokuskan area ini lalu tekan Ctrl+V untuk screenshot.</p>
    <div className="mt-4 flex flex-col md:flex-row md:items-center gap-3">
     <label className="inline-flex items-center gap-2 rounded-lg bg-blue-700 text-white px-4 py-2.5 font-semibold text-sm cursor-pointer hover:bg-blue-800">
      <Upload size={17}/>Pilih Gambar atau PDF
@@ -161,12 +171,20 @@ export const KuitansiExtractorView:React.FC<{fixedType?:KuitansiType}>=({fixedTy
     </label>
     <span className="text-sm text-slate-700">{fileName||'Belum ada berkas'} · maksimum 12 MB dan 5 halaman</span>
    </div>
+   </div>
    <p role="status" className="mt-2 text-xs text-slate-600">{status}{isBusy?' (pemrosesan lokal sedang berjalan)':''}</p>
    <p className="mt-1 text-xs text-slate-500">Tidak membutuhkan API AI berbayar. Mesin OCR/PDF diunduh dari CDN publik saat digunakan. Berkas asli diproses di browser dan tidak diunggah ke Supabase; hanya data yang Anda setujui disimpan sebagai transaksi.</p>
   </div>
   {!pejabatReady&&<p role="alert" className="bg-amber-50 border border-amber-200 rounded p-3 text-xs text-amber-900">Konfigurasi pejabat belum tersedia. {pejabatError}</p>}
   {error&&<p role="alert" className="bg-red-50 border border-red-300 rounded-lg p-3 text-sm text-red-800">{error}</p>}
   {imported&&<div className="space-y-4">
+   {onApplyToForm&&<button type="button" disabled={isBusy||saving||!rows.length} onClick={()=>{
+      if(!rows.length)return;
+      if(!window.confirm('Terapkan '+rows.length+' rincian ke formulir manual? Periksa kembali seluruh kolom dan jangan langsung finalisasi.'))return;
+      onApplyToForm({rows,date,account,activity,description});
+     }} className="w-full bg-blue-700 text-white font-semibold px-4 py-3 rounded-lg disabled:opacity-50">
+       Terapkan Hasil Ekstraksi ke Formulir Kuitansi
+     </button>}
    {warnings.length>0&&<section className="bg-amber-50 border border-amber-200 rounded-xl p-4">
     <h3 className="font-bold text-sm flex items-center gap-2 text-amber-900"><AlertTriangle size={16}/>Hal yang harus diperiksa</h3>
     <ul className="mt-2 list-disc pl-5 text-xs text-amber-900 space-y-1">{warnings.map((w,i)=><li key={i}>{w}</li>)}</ul>
