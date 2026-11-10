@@ -5,6 +5,7 @@
 
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
+import {PerjadinReceiptPreview} from './PerjadinReceiptPreview';
 import {usePejabatSettings,signerForFunding} from '../../context/PejabatSettingsContext';
 import { SumberDana, PenerimaItem } from '../../types';
 import { formatRupiah } from '../../utils/formatters';
@@ -21,6 +22,7 @@ interface BiayaItem {
 
 export const KuitansiPerjadinLuarKotaForm: React.FC = () => {
   const { currentRole, addTransaksi, setActiveView, showToast } = useApp();
+  const [previewOpen,setPreviewOpen]=useState(false);
   const {value:pejabat,ready:pejabatReady}=usePejabatSettings();
 
   const defaultSumberDana: SumberDana = currentRole === 'bpp_pnbp' ? 'PNBP' : 'RM';
@@ -106,8 +108,8 @@ export const KuitansiPerjadinLuarKotaForm: React.FC = () => {
 
   const handleSubmit = async (targetStatus: 'Draft' | 'Final') => {
     if(!pejabatReady){showToast('Konfigurasi pejabat belum tersedia. Buka Administrasi.','warning');return;}
-    if (!namaPelaksana.trim() || !kegiatan.trim() || totalBruto <= 0) {
-      showToast('Harap lengkapi nama pelaksana, kegiatan, dan rincian biaya!', 'warning');
+    if (!namaPelaksana.trim() || totalBruto <= 0) {
+      showToast('Harap lengkapi nama pelaksana dan rincian biaya!', 'warning');
       return;
     }
 
@@ -142,10 +144,10 @@ export const KuitansiPerjadinLuarKotaForm: React.FC = () => {
       tanggalKuitansi,
       sumberDana,
       jenisKuitansi: 'perjadin_luar_kota',
-      kegiatan,
+      kegiatan: biayaItems.map(x=>x.uraian.trim()).filter(Boolean).join('; ') || 'Perjalanan Dinas Luar Kota',
       kodeAkun,
       namaAkun: 'Belanja Perjalanan Dinas Biasa (Luar Kota)',
-      uraian,
+      uraian: biayaItems.map(x=>x.uraian.trim()).filter(Boolean).join('; ') || 'Biaya Perjalanan Dinas Luar Kota',
       ringkasanPenerima: namaPelaksana,
       penerimaList,
       totalBruto,
@@ -158,10 +160,10 @@ export const KuitansiPerjadinLuarKotaForm: React.FC = () => {
       ppkNip: pejabat.ppkNip,
       bendaharaNama: signerForFunding(pejabat,sumberDana).nama,
       bendaharaNip: signerForFunding(pejabat,sumberDana).nip,
-      suratTugasNomor,
-      tanggalTugas,
-      kotaAsal,
-      kotaTujuan,
+      suratTugasNomor: '',
+      tanggalTugas: '',
+      kotaAsal: '',
+      kotaTujuan: '',
     });
 
     setActiveView('transaksi');
@@ -248,84 +250,6 @@ export const KuitansiPerjadinLuarKotaForm: React.FC = () => {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-3">
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Nomor Surat Tugas (ST)
-              </label>
-              <input
-                type="text"
-                value={suratTugasNomor}
-                onChange={e => setSuratTugasNomor(e.target.value)}
-                placeholder="Contoh: ST-088/BBPKAIV/03/2026"
-                className="w-full px-3 py-2 text-xs rounded-lg border border-slate-300 font-mono focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Jadwal / Tanggal Pelaksanaan Tugas
-              </label>
-              <input
-                type="text"
-                value={tanggalTugas}
-                onChange={e => setTanggalTugas(e.target.value)}
-                placeholder="Contoh: 24 s.d. 26 Maret 2026"
-                className="w-full px-3 py-2 text-xs rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Kota Asal
-              </label>
-              <input
-                type="text"
-                value={kotaAsal}
-                onChange={e => setKotaAsal(e.target.value)}
-                placeholder="Jakarta"
-                className="w-full px-3 py-2 text-xs rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Kota Tujuan
-              </label>
-              <input
-                type="text"
-                value={kotaTujuan}
-                onChange={e => setKotaTujuan(e.target.value)}
-                placeholder="Contoh: Surabaya, Jawa Timur"
-                className="w-full px-3 py-2 text-xs rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 gap-3 mt-3">
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Nama Kegiatan / DIPA
-              </label>
-              <input
-                type="text"
-                value={kegiatan}
-                onChange={e => setKegiatan(e.target.value)}
-                className="w-full px-3 py-2 text-xs rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Uraian Kuitansi
-              </label>
-              <input
-                type="text"
-                value={uraian}
-                onChange={e => setUraian(e.target.value)}
-                className="w-full px-3 py-2 text-xs rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-              />
-            </div>
-          </div>
         </div>
 
         {/* Section 2: Identitas Pelaksana */}
@@ -558,6 +482,7 @@ export const KuitansiPerjadinLuarKotaForm: React.FC = () => {
         </div>
 
         {/* Action Buttons */}
+        <button type="button" onClick={()=>setPreviewOpen(true)} className="rounded-lg border border-blue-300 text-blue-700 px-4 py-2 text-sm font-semibold">Pratinjau Kuitansi</button>
         <div className="pt-2 flex flex-col sm:flex-row items-center justify-end gap-3 border-t border-slate-100">
           <button
             type="button"
@@ -578,6 +503,7 @@ export const KuitansiPerjadinLuarKotaForm: React.FC = () => {
           </button>
         </div>
       </div>
+      <PerjadinReceiptPreview open={previewOpen} onClose={()=>setPreviewOpen(false)} title="Perjadin Luar Kota" date={tanggalKuitansi} source={sumberDana} account={kodeAkun} ppn={ppnNominal} pph={pphNominal} details={biayaItems.map(x=>({nama:namaPelaksana,uraian:x.uraian||x.kategori,volume:x.volume,satuan:x.satuan,tarif:x.tarifSatuan,bruto:x.volume*x.tarifSatuan,pph:0,netto:x.volume*x.tarifSatuan}))}/>
     </div>
   );
 };
