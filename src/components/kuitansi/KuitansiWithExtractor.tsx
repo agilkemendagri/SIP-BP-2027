@@ -3,7 +3,7 @@ import type {KuitansiType} from '../../types';
 import type {ImportedRow} from '../../utils/receiptExtractor';
 import {KuitansiExtractorView} from './KuitansiExtractorView';
 import {FilePenLine,ScanLine} from 'lucide-react';
-export type ExtractedReceiptData={rows:ImportedRow[];date:string;account:string;activity:string;description:string};
+export type ExtractedReceiptData={rows:ImportedRow[];date:string;account:string;activity:string;description:string;sourceNumber?:string;tanggalSppd?:string};
 export const KuitansiWithExtractor:React.FC<{type:KuitansiType;children:React.ReactElement}>=({type,children})=>{
  const [mode,setMode]=useState<'manual'|'ekstraktor'>('manual');
  const [applied,setApplied]=useState<ExtractedReceiptData|null>(null);
