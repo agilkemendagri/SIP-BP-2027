@@ -3,10 +3,10 @@ import {X,Printer} from 'lucide-react';
 import type {SumberDana} from '../../types';
 import {usePejabatSettings,signerForFunding} from '../../context/PejabatSettingsContext';
 export type TravelDetail={nama:string;uraian:string;volume:number;satuan:string;tarif:number;bruto:number;pph:number;netto:number;tanggalPelaksanaan?:string;keterangan?:string;tarifDasar?:number;persentase?:number};
-type Props={open:boolean;onClose:()=>void;title:string;date:string;source:SumberDana;account:string;details:TravelDetail[];ppn?:number;pph?:number;purpose?:string;sppdNomor?:string;tanggalSppd?:string};
+type Props={open:boolean;onClose:()=>void;title:string;date:string;source:SumberDana;account:string;details:TravelDetail[];ppn?:number;pph?:number;purpose?:string;sppdNomor?:string;tanggalSppd?:string;telahDibayarSemula?:number;sisaKurangLebih?:number};
 const amount=(v:number)=>new Intl.NumberFormat('id-ID',{maximumFractionDigits:0}).format(v||0);
 const dateLabel=(v:string)=>v?new Date(v+'T12:00:00').toLocaleDateString('id-ID',{day:'numeric',month:'long',year:'numeric'}):'—';
-export const PerjadinReceiptPreview:React.FC<Props>=({open,onClose,title,date,source,details,ppn=0,pph=0,purpose,sppdNomor,tanggalSppd})=>{
+export const PerjadinReceiptPreview:React.FC<Props>=({open,onClose,title,date,source,details,ppn=0,pph=0,purpose,sppdNomor,tanggalSppd,telahDibayarSemula,sisaKurangLebih})=>{
  const {value:p}=usePejabatSettings();
  if(!open)return null;
  const outside=title.toLowerCase().includes('luar');
@@ -31,7 +31,7 @@ export const PerjadinReceiptPreview:React.FC<Props>=({open,onClose,title,date,so
  <div className="text-right mt-5">{p.kota}, {dateLabel(date)}</div>
  <div className="grid grid-cols-2 gap-8 mt-4 text-[11px]"><div><div>Telah dibayar sejumlah</div><strong>Rp {amount(net)}</strong><div className="mt-2">Bendahara Pengeluaran</div><div className="mt-14 font-semibold underline">{signer.nama||'______________________'}</div><div>NIP. {signer.nip||'—'}</div></div><div className="text-right"><div>Telah menerima jumlah uang sebesar</div><strong>Rp {amount(net)}</strong><div className="mt-2">Yang Menerima</div><div className="mt-14 font-semibold underline">{rows[0]?.nama||'______________________'}</div></div></div>
  <h3 className="text-center font-bold my-6">PERHITUNGAN SPPD RAMPUNG</h3>
- <div className="max-w-md mx-auto text-[11px]"><div className="flex justify-between"><span>Ditetapkan sejumlah</span><span>Rp {amount(gross)}</span></div><div className="flex justify-between"><span>Yang telah dibayar semula</span><span>—</span></div><div className="flex justify-between"><span>Sisa Kurang/Lebih</span><span>—</span></div></div>
+ <div className="max-w-md mx-auto text-[11px]"><div className="flex justify-between"><span>Ditetapkan sejumlah</span><span>Rp {amount(gross)}</span></div><div className="flex justify-between"><span>Yang telah dibayar semula</span><span>{telahDibayarSemula===undefined?'—':'Rp '+amount(telahDibayarSemula)}</span></div><div className="flex justify-between"><span>Sisa Kurang/Lebih</span><span>{sisaKurangLebih===undefined?'—':sisaKurangLebih===0?'-':'Rp '+amount(sisaKurangLebih)}</span></div></div>
  <div className="max-w-xs mt-9 text-center text-[11px]"><div>Setuju Dibayar</div><div>a.n. Kuasa Pengguna Anggaran</div><div>PEJABAT PEMBUAT KOMITMEN</div><div className="mt-14 font-semibold underline">{p.ppkNama||'______________________'}</div><div>NIP. {p.ppkNip||'—'}</div></div>
  </React.Fragment>:<React.Fragment>
  <h2 className="text-center text-[15px] font-bold">DAFTAR PENERIMAAN</h2>
