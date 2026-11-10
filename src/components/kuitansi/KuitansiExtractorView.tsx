@@ -4,6 +4,7 @@ import {useApp} from '../../context/AppContext';
 import {usePejabatSettings,signerForFunding} from '../../context/PejabatSettingsContext';
 import {parseReceiptText,type ImportedRow} from '../../utils/receiptExtractor';
 import {parseProfessionReceipt} from '../../utils/professionReceiptParser';
+import {parseOutsideTravelReceipt,parseInsideTravelReceipt} from '../../utils/travelReceiptParser';
 import type {ExtractedReceiptData} from './KuitansiWithExtractor';
 import type {SumberDana,KuitansiType} from '../../types';
 
@@ -39,6 +40,7 @@ export const KuitansiExtractorView:React.FC<{fixedType?:KuitansiType;onApplyToFo
  const [saving,setSaving]=useState(false);
  const [rawOpen,setRawOpen]=useState(false);
  const [imported,setImported]=useState(false);
+ const [expectedTotals,setExpectedTotals]=useState<{bruto:number|null;netto:number|null}>({bruto:null,netto:null});
  const sum=useMemo(()=>rows.reduce((s,row)=>({
   bruto:s.bruto+Number(row.bruto||0),
   ppn:s.ppn+Number(row.ppnNominal||0),
@@ -47,13 +49,14 @@ export const KuitansiExtractorView:React.FC<{fixedType?:KuitansiType;onApplyToFo
  }),{bruto:0,ppn:0,pph:0,netto:0}),[rows]);
  const applyText=(raw:string)=>{
   setText(raw);
-  const parsed=(fixedType==='jasa_profesi'?parseProfessionReceipt(raw):null)||parseReceiptText(raw);
+  const parsed=(fixedType==='jasa_profesi'?parseProfessionReceipt(raw):fixedType==='perjadin_luar_kota'?parseOutsideTravelReceipt(raw):fixedType==='perjadin_dalam_kota'?parseInsideTravelReceipt(raw):null)||parseReceiptText(raw);
   setRows(parsed.rows);
   setWarnings(parsed.warnings);
   setDate(parsed.tanggalKuitansi);
   setAccount(parsed.kodeAkun);
   setActivity(parsed.kegiatan||parsed.rows.map(r=>r.uraianItem).filter(Boolean).join('; '));
   setSourceNumber(parsed.nomorAsal);
+  setExpectedTotals({bruto:parsed.totalBruto,netto:parsed.totalNetto});
   setDescription(parsed.rows[0]?.uraianItem||'');
   setConfirmed(false);
   setImported(true);
@@ -129,6 +132,7 @@ export const KuitansiExtractorView:React.FC<{fixedType?:KuitansiType;onApplyToFo
   if(!/^20\d{2}-\d{2}-\d{2}$/.test(date)){setError('Tanggal kuitansi wajib valid (YYYY-MM-DD).');return;}
   if(!activity.trim()&&!rows.some(r=>r.uraianItem.trim())){setError('Uraian rincian kuitansi wajib diisi.');return;}
   if(!rows.length){setError('Minimal ada satu baris rincian kuitansi.');return;}
+  if(expectedTotals.bruto!==null&&Math.abs(expectedTotals.bruto-sum.bruto)>1){setError('Total bruto berbeda dari dokumen sumber. Periksa kembali.');return;}
   if(rows.some(r=>!r.nama.trim()||!r.uraianItem.trim()||r.bruto<=0||r.volume<=0||r.tarifSatuan<0||r.netto<0)){
    setError('Lengkapi nama, uraian, volume, dan nominal setiap baris.');return;
   }
@@ -193,8 +197,9 @@ export const KuitansiExtractorView:React.FC<{fixedType?:KuitansiType;onApplyToFo
   {imported&&<div className="space-y-4">
    {onApplyToForm&&<button type="button" disabled={isBusy||saving||!rows.length} onClick={()=>{
       if(!rows.length)return;
+      if(expectedTotals.bruto!==null&&Math.abs(expectedTotals.bruto-sum.bruto)>1){setError('Total rincian tidak sesuai dokumen sumber. Koreksi sebelum menerapkan.');return;}
       if(!window.confirm('Terapkan '+rows.length+' rincian ke formulir manual? Periksa kembali seluruh kolom dan jangan langsung finalisasi.'))return;
-      onApplyToForm({rows,date,account,activity,description});
+      onApplyToForm({rows,date,account,activity,description,sourceNumber});
      }} className="w-full bg-blue-700 text-white font-semibold px-4 py-3 rounded-lg disabled:opacity-50">
        Terapkan Hasil Ekstraksi ke Formulir Kuitansi
      </button>}
