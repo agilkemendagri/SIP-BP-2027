@@ -516,7 +516,7 @@ export const KuitansiPerjadinLuarKotaForm: React.FC<{extracted?:ExtractedReceipt
           </button>
         </div>
       </div>
-      <PerjadinReceiptPreview open={previewOpen} onClose={()=>setPreviewOpen(false)} title="Perjadin Luar Kota" date={tanggalKuitansi} source={sumberDana} account={kodeAkun} sppdNomor={extracted?.sourceNumber} tanggalSppd={extracted?.tanggalSppd} ppn={ppnNominal} pph={pphNominal} details={biayaItems.map(x=>({nama:namaPelaksana,uraian:x.uraian||x.kategori,volume:x.volume,satuan:x.satuan,tarif:x.tarifSatuan,bruto:x.volume*x.tarifSatuan,pph:0,netto:x.volume*x.tarifSatuan,keterangan:x.keterangan,tarifDasar:x.tarifDasar,persentase:x.persentase}))}/>
+      <PerjadinReceiptPreview open={previewOpen} onClose={()=>setPreviewOpen(false)} title="Perjadin Luar Kota" date={tanggalKuitansi} source={sumberDana} account={kodeAkun} sppdNomor={extracted?.sourceNumber} tanggalSppd={extracted?.tanggalSppd} telahDibayarSemula={extracted?.telahDibayarSemula} sisaKurangLebih={extracted?.sisaKurangLebih} ppn={ppnNominal} pph={pphNominal} details={biayaItems.map(x=>({nama:namaPelaksana,uraian:x.uraian||x.kategori,volume:x.volume,satuan:x.satuan,tarif:x.tarifSatuan,bruto:x.volume*x.tarifSatuan,pph:0,netto:x.volume*x.tarifSatuan,keterangan:x.keterangan,tarifDasar:x.tarifDasar,persentase:x.persentase}))}/>
     </div>
   );
 };
