@@ -7,7 +7,16 @@ type Props={open:boolean;onClose:()=>void;title:string;date:string;source:Sumber
 const money=(v:number)=>'Rp '+new Intl.NumberFormat('id-ID').format(v||0);
 export const PerjadinReceiptPreview:React.FC<Props>=({open,onClose,title,date,source,account,details,ppn=0,pph=0})=>{
  const {value:p}=usePejabatSettings();if(!open)return null;
- const bruto=details.reduce((n,r)=>n+r.bruto,0),netto=bruto-ppn-pph,bpp=signerForFunding(p,source);
+ const bruto=details.reduce((n,r)=>n+r.bruto,0);
+ const pphTotal=pph||details.reduce((n,r)=>n+r.pph,0);
+ const netto=bruto-ppn-pphTotal;
+ const bpp=signerForFunding(p,source);
+ const displayDetails=details.map((r,i)=>{
+  if(pph===0&&ppn===0)return r;
+  const withheld=pph===0?r.pph:(i===details.length-1?pph-details.slice(0,i).reduce((n,v)=>n+Math.round(pph*v.bruto/(bruto||1)),0):Math.round(pph*r.bruto/(bruto||1)));
+  const vat=ppn===0?0:(i===details.length-1?ppn-details.slice(0,i).reduce((n,v)=>n+Math.round(ppn*v.bruto/(bruto||1)),0):Math.round(ppn*r.bruto/(bruto||1)));
+  return {...r,pph:withheld,netto:r.bruto-withheld-vat};
+ });
  return <div className="fixed inset-0 z-50 bg-slate-950/70 overflow-y-auto p-3 sm:p-8" role="dialog" aria-modal="true" aria-label="Pratinjau Kuitansi Perjalanan Dinas">
   <div className="max-w-5xl mx-auto bg-white shadow-xl rounded-xl overflow-hidden">
    <div className="flex items-center justify-between gap-2 bg-slate-900 text-white p-3 print:hidden">
@@ -18,8 +27,8 @@ export const PerjadinReceiptPreview:React.FC<Props>=({open,onClose,title,date,so
     <h2 className="text-center font-bold text-lg uppercase">{p.satkerPanjang}</h2>
     <h3 className="text-center font-semibold mt-4 uppercase">TANDA TERIMA — {title}</h3>
     <p className="mt-6 text-sm">Tanggal: {date||'—'} · Sumber Dana: {source} · Akun: {account}</p>
-    <table className="w-full text-xs border-collapse mt-4"><thead><tr>{['No','Penerima','Uraian','Volume','Satuan','Tarif','Bruto','PPh','Netto'].map(h=><th key={h} className="border p-2 text-left">{h}</th>)}</tr></thead><tbody>{details.map((r,i)=><tr key={i}><td className="border p-2">{i+1}</td><td className="border p-2">{r.nama}</td><td className="border p-2">{r.uraian}</td><td className="border p-2">{r.volume}</td><td className="border p-2">{r.satuan}</td><td className="border p-2">{money(r.tarif)}</td><td className="border p-2">{money(r.bruto)}</td><td className="border p-2">{money(r.pph)}</td><td className="border p-2">{money(r.netto)}</td></tr>)}</tbody></table>
-    <div className="mt-4 text-right text-sm">Bruto: <b>{money(bruto)}</b> · PPN: <b>{money(ppn)}</b> · PPh: <b>{money(pph)}</b> · Netto: <b>{money(netto)}</b></div>
+    <table className="w-full text-xs border-collapse mt-4"><thead><tr>{['No','Penerima','Uraian','Volume','Satuan','Tarif','Bruto','PPh','Netto'].map(h=><th key={h} className="border p-2 text-left">{h}</th>)}</tr></thead><tbody>{displayDetails.map((r,i)=><tr key={i}><td className="border p-2">{i+1}</td><td className="border p-2">{r.nama}</td><td className="border p-2">{r.uraian}</td><td className="border p-2">{r.volume}</td><td className="border p-2">{r.satuan}</td><td className="border p-2">{money(r.tarif)}</td><td className="border p-2">{money(r.bruto)}</td><td className="border p-2">{money(r.pph)}</td><td className="border p-2">{money(r.netto)}</td></tr>)}</tbody></table>
+    <div className="mt-4 text-right text-sm">Bruto: <b>{money(bruto)}</b> · PPN: <b>{money(ppn)}</b> · PPh: <b>{money(pphTotal)}</b> · Netto: <b>{money(netto)}</b></div>
     <div className="grid grid-cols-2 gap-8 mt-12 text-sm text-center"><div>Pejabat Pembuat Komitmen<div className="mt-14 font-semibold">{p.ppkNama||'(belum dikonfigurasi)'}</div><div>NIP {p.ppkNip||'—'}</div></div><div>{p.kota}, {date||'—'}<div className="mt-2">Bendahara Pengeluaran Pembantu</div><div className="mt-12 font-semibold">{bpp.nama||'(belum dikonfigurasi)'}</div><div>NIP {bpp.nip||'—'}</div></div></div>
    </div>
   </div>
