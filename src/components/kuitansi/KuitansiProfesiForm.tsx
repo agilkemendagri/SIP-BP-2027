@@ -5,6 +5,7 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
+import {usePejabatSettings,signerForFunding} from '../../context/PejabatSettingsContext';
 import { SumberDana, PenerimaItem, Transaksi } from '../../types';
 import { DAFTAR_AKUN } from '../../data/mockData';
 import { formatRupiah, formatTanggalIndo, formatNumberCommas } from '../../utils/formatters';
@@ -55,6 +56,7 @@ export interface KolektifInputRow {
 }
 
 export const KuitansiProfesiForm: React.FC = () => {
+  const {value:pejabat,ready:pejabatReady}=usePejabatSettings();
   const {
     currentRole,
     addTransaksi,
@@ -79,17 +81,15 @@ export const KuitansiProfesiForm: React.FC = () => {
   const [kegiatan, setKegiatan] = useState<string>('');
   const [uraianUmum, setUraianUmum] = useState<string>('');
 
-  // Konfigurasi Pejabat & Lokasi (Dapat dikonfigurasi, default mengikuti referensi PDF)
-  const [showPejabatConfig, setShowPejabatConfig] = useState<boolean>(false);
-  const [kotaTandaTerima, setKotaTandaTerima] = useState<string>('Makassar');
-  const [namaSatkerPanjang, setNamaSatkerPanjang] = useState<string>(
-    'Balai Besar Pengembangan Kompetensi Aparatur Pemerintahan Dalam Negeri IV'
-  );
-  const [namaSatkerPendek, setNamaSatkerPendek] = useState<string>('BBPK APDN IV');
-  const [ppkNama, setPpkNama] = useState<string>('');
-  const [ppkNip, setPpkNip] = useState<string>('');
-  const [bppNama, setBppNama] = useState<string>('');
-  const [bppNip, setBppNip] = useState<string>('');
+  // Konfigurasi terpusat hanya disunting dari Administrasi.
+  const kotaTandaTerima=pejabat.kota;
+  const namaSatkerPanjang=pejabat.satkerPanjang;
+  const namaSatkerPendek=pejabat.satkerPendek;
+  const ppkNama=pejabat.ppkNama;
+  const ppkNip=pejabat.ppkNip;
+  const selectedBpp=signerForFunding(pejabat,sumberDana);
+  const bppNama=selectedBpp.nama;
+  const bppNip=selectedBpp.nip;
 
   // ==========================================
   // STATE MODE 1: INDIVIDUAL
@@ -192,10 +192,6 @@ export const KuitansiProfesiForm: React.FC = () => {
       setKodeAkun(editingTransaksi.kodeAkun || '522151');
       setKegiatan(editingTransaksi.kegiatan || '');
       setUraianUmum(editingTransaksi.uraian || '');
-      if (editingTransaksi.ppkNama) setPpkNama(editingTransaksi.ppkNama);
-      if (editingTransaksi.ppkNip) setPpkNip(editingTransaksi.ppkNip);
-      if (editingTransaksi.bendaharaNama) setBppNama(editingTransaksi.bendaharaNama);
-      if (editingTransaksi.bendaharaNip) setBppNip(editingTransaksi.bendaharaNip);
 
       const uniqueRecipients = new Set(editingTransaksi.penerimaList.map(p => p.nama.trim()));
       const isMulti = editingTransaksi.penerimaList.length > 1 && uniqueRecipients.size > 1;
@@ -338,6 +334,7 @@ export const KuitansiProfesiForm: React.FC = () => {
   // SIMPAN TRANSAKSI (DRAFT / FINAL)
   // ==========================================
   const handleSubmit = async (targetStatus: 'Draft' | 'Final') => {
+    if(!pejabatReady){showToast('Konfigurasi pejabat belum tersedia. Buka Administrasi.','warning');return;}
     // 1. Validasi Data
     if (targetStatus === 'Final') {
       if (!kegiatan.trim()) {
@@ -688,80 +685,8 @@ export const KuitansiProfesiForm: React.FC = () => {
             <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500">
               1. Penganggaran & Kegiatan
             </h3>
-            <button
-              type="button"
-              onClick={() => setShowPejabatConfig(prev => !prev)}
-              className="text-xs font-medium text-blue-600 hover:text-blue-800 flex items-center gap-1"
-            >
-              <Sliders className="w-3.5 h-3.5" />
-              <span>{showPejabatConfig ? 'Sembunyikan' : 'Konfigurasi'} Pejabat Penandatangan</span>
-            </button>
           </div>
-
-          {/* Collapsible Pejabat & Lokasi Config */}
-          {showPejabatConfig && (
-            <div className="mt-3 p-4 bg-slate-50 border border-slate-200 rounded-lg text-xs space-y-3">
-              <div className="font-semibold text-slate-800">
-                Konfigurasi Pejabat & Kop Satker (Dapat Disesuaikan):
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-slate-600 mb-1">Kota Dokumen</label>
-                  <input
-                    type="text"
-                    value={kotaTandaTerima}
-                    onChange={e => setKotaTandaTerima(e.target.value)}
-                    className="w-full px-2.5 py-1.5 rounded border border-slate-300 bg-white"
-                  />
-                </div>
-                <div>
-                  <label className="block text-slate-600 mb-1">Nama Satker Singkat</label>
-                  <input
-                    type="text"
-                    value={namaSatkerPendek}
-                    onChange={e => setNamaSatkerPendek(e.target.value)}
-                    className="w-full px-2.5 py-1.5 rounded border border-slate-300 bg-white"
-                  />
-                </div>
-                <div>
-                  <label className="block text-slate-600 mb-1">Nama Pejabat Pembuat Komitmen (PPK)</label>
-                  <input
-                    type="text"
-                    value={ppkNama}
-                    onChange={e => setPpkNama(e.target.value)}
-                    className="w-full px-2.5 py-1.5 rounded border border-slate-300 bg-white"
-                  />
-                </div>
-                <div>
-                  <label className="block text-slate-600 mb-1">NIP PPK</label>
-                  <input
-                    type="text"
-                    value={ppkNip}
-                    onChange={e => setPpkNip(e.target.value)}
-                    className="w-full px-2.5 py-1.5 rounded border border-slate-300 bg-white font-mono"
-                  />
-                </div>
-                <div>
-                  <label className="block text-slate-600 mb-1">Nama Bendahara Pengeluaran Pembantu (BPP)</label>
-                  <input
-                    type="text"
-                    value={bppNama}
-                    onChange={e => setBppNama(e.target.value)}
-                    className="w-full px-2.5 py-1.5 rounded border border-slate-300 bg-white"
-                  />
-                </div>
-                <div>
-                  <label className="block text-slate-600 mb-1">NIP BPP</label>
-                  <input
-                    type="text"
-                    value={bppNip}
-                    onChange={e => setBppNip(e.target.value)}
-                    className="w-full px-2.5 py-1.5 rounded border border-slate-300 bg-white font-mono"
-                  />
-                </div>
-              </div>
-            </div>
-          )}
+          {!pejabatReady&&<p role="alert" className="text-xs mt-2 text-amber-800">Konfigurasi penandatangan belum tersedia. Buka Administrasi.</p>}
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-3">
             <div>
