@@ -5,6 +5,7 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
+import type {ExtractedReceiptData} from './KuitansiWithExtractor';
 import {usePejabatSettings,signerForFunding} from '../../context/PejabatSettingsContext';
 import { SumberDana, PenerimaItem, Transaksi } from '../../types';
 import { DAFTAR_AKUN } from '../../data/mockData';
@@ -55,7 +56,7 @@ export interface KolektifInputRow {
   customPphNominal: number | null;
 }
 
-export const KuitansiProfesiForm: React.FC = () => {
+export const KuitansiProfesiForm: React.FC<{extracted?:ExtractedReceiptData}> = ({extracted}) => {
   const {value:pejabat,ready:pejabatReady}=usePejabatSettings();
   const {
     currentRole,
@@ -181,6 +182,24 @@ export const KuitansiProfesiForm: React.FC = () => {
     return calculatedRowsKolektif.reduce((acc, r) => acc + r.netto, 0);
   }, [calculatedRowsKolektif]);
 
+  useEffect(()=>{
+    if(!extracted?.rows.length)return;
+    if(extracted.date)setTanggalKuitansi(extracted.date);
+    if(extracted.account)setKodeAkun(extracted.account);
+    const rows=extracted.rows;
+    const distinct=new Set(rows.map(r=>r.nama.trim().toLowerCase()));
+    if(distinct.size===1){
+      setJenisDokumen('INDIVIDUAL');
+      setNamaPenerima(rows[0].nama);
+      setSesiIndividual(rows.map((r,i)=>({id:r.id||'ext-'+i,uraianSesi:r.uraianItem,volume:r.volume,satuan:r.satuan||'JP',tarifSatuan:r.tarifSatuan})));
+      setCustomPphNominalIndiv(rows.reduce((n,r)=>n+r.pphNominal,0));
+      setPphRateIndiv(rows[0].bruto?rows[0].pphNominal/rows[0].bruto*100:0);
+    } else {
+      setJenisDokumen('KOLEKTIF');
+      setRowsKolektif(rows.map((r,i)=>({id:r.id||'ext-'+i,nama:r.nama,nip:'',golongan:'',untukPembayaran:r.uraianItem,jp:r.volume,tarifSatuan:r.tarifSatuan,pphRate:r.bruto?r.pphNominal/r.bruto*100:0,customPphNominal:r.pphNominal})));
+    }
+    showToast('Rincian hasil ekstraksi telah dimasukkan ke formulir Jasa Profesi. Periksa sebelum simpan.','info');
+  },[extracted]);
   // Modal Pratinjau Tanda Terima
   const [isPreviewModalOpen, setIsPreviewModalOpen] = useState<boolean>(false);
 
