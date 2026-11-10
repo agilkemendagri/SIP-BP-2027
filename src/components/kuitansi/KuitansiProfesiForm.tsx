@@ -337,10 +337,7 @@ export const KuitansiProfesiForm: React.FC = () => {
     if(!pejabatReady){showToast('Konfigurasi pejabat belum tersedia. Buka Administrasi.','warning');return;}
     // 1. Validasi Data
     if (targetStatus === 'Final') {
-      if (!kegiatan.trim()) {
-        showToast('Nama program/kegiatan wajib diisi sebelum finalisasi!', 'warning');
-        return;
-      }
+
       if (jenisDokumen === 'INDIVIDUAL') {
         if (!namaPenerima.trim()) {
           showToast('Nama penerima wajib diisi sebelum finalisasi transaksi!', 'warning');
@@ -363,7 +360,7 @@ export const KuitansiProfesiForm: React.FC = () => {
       }
     } else {
       // Validasi minimal saat Simpan Draft
-      if (jenisDokumen === 'INDIVIDUAL' && !namaPenerima.trim() && !kegiatan.trim() && !uraianUmum.trim()) {
+      if (jenisDokumen === 'INDIVIDUAL' && !namaPenerima.trim() && !sesiIndividual.some(x=>x.uraianSesi.trim())) {
         showToast('Harap isi minimal nama penerima atau kegiatan untuk menyimpan Draft!', 'warning');
         return;
       }
@@ -412,10 +409,10 @@ export const KuitansiProfesiForm: React.FC = () => {
         tanggalKuitansi,
         sumberDana,
         jenisKuitansi: 'jasa_profesi' as const,
-        kegiatan: kegiatan.trim() || 'Draft Kegiatan Jasa Profesi',
+        kegiatan: sesiIndividual[0]?.uraianSesi.trim() || 'Honorarium Jasa Profesi',
         kodeAkun,
         namaAkun: kodeAkun === '522151' ? 'Belanja Jasa Profesi' : 'Belanja Honor Output Kegiatan',
-        uraian: uraianUmum || sesiIndividual[0]?.uraianSesi || 'Honorarium Jasa Profesi',
+        uraian: sesiIndividual.map(x=>x.uraianSesi.trim()).filter(Boolean).join('; ') || 'Honorarium Jasa Profesi',
         ringkasanPenerima: namaPenerima.trim() || 'Draft Penerima',
         penerimaList,
         totalBruto: totalBrutoIndiv,
@@ -468,10 +465,10 @@ export const KuitansiProfesiForm: React.FC = () => {
         tanggalKuitansi,
         sumberDana,
         jenisKuitansi: 'jasa_profesi' as const,
-        kegiatan: kegiatan.trim() || 'Draft Kegiatan Jasa Profesi Kolektif',
+        kegiatan: rowsKolektif[0]?.untukPembayaran.trim() || 'Honorarium Jasa Profesi Kolektif',
         kodeAkun,
         namaAkun: kodeAkun === '522151' ? 'Belanja Jasa Profesi' : 'Belanja Honor Output Kegiatan',
-        uraian: uraianUmum || `Honorarium Pemateri ${kegiatan} (${rowsKolektif.length} rincian)`,
+        uraian: rowsKolektif.map(x=>x.untukPembayaran.trim()).filter(Boolean).join('; ') || 'Honorarium Jasa Profesi Kolektif',
         ringkasanPenerima,
         penerimaList,
         totalBruto: totalBrutoKolektif,
@@ -731,33 +728,6 @@ export const KuitansiProfesiForm: React.FC = () => {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-3 mt-3">
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Nama Program / Kegiatan
-              </label>
-              <input
-                type="text"
-                value={kegiatan}
-                onChange={e => setKegiatan(e.target.value)}
-                placeholder="Pelatihan Kepemimpinan Administrator (PKA) Angkatan III"
-                className="w-full px-3 py-2 text-xs rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Uraian Kegiatan Pokok
-              </label>
-              <input
-                type="text"
-                value={uraianUmum}
-                onChange={e => setUraianUmum(e.target.value)}
-                placeholder=""
-                className="w-full px-3 py-2 text-xs rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-              />
-            </div>
-          </div>
         </div>
 
         {/* ============================================================== */}
