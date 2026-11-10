@@ -6,7 +6,9 @@ export type ImportedRow={
 };
 export type ParsedReceipt={
  rows:ImportedRow[];tanggalKuitansi:string;kodeAkun:string;kegiatan:string;
- nomorAsal:string;documentKind:'individual'|'collective'|'unknown';suggestedSource:'RM'|'PNBP'|null;
+ nomorAsal:string;documentKind:'individual'|'collective'|'travel'|'unknown';suggestedSource:'RM'|'PNBP'|null;
+ suggestedType?:'jasa_profesi'|'perjadin_luar_kota'|'perjadin_dalam_kota';
+ recipientNip?:string;documentDate?:string;signatureDate?:string;
  totalBruto:number|null;totalPPN:number|null;totalPPh:number|null;totalNetto:number|null;
  warnings:string[];
 };
@@ -148,10 +150,111 @@ function parseIndividualReceipt(input:string,lines:string[]):{
   description,source:sourceHint(input),warnings:warning};
 }
 
+/** Parses perincian biaya SPPD. Never interpret 30% accommodation as a tax.
+ * The actual reimbursable amount is the line total; we preserve the 30% rate
+ * and underlying ceiling in uraianItem, with effective tariff=bruto/volume.
+ */
+function parseTravelReceipt(input:string,lines:string[]):ParsedReceipt|null {
+ if(!/\b(?:PERINCIAN\s+BIAYA|PERHITUNGAN\s+SPPD\s+RAMPUNG)\b/i.test(input)
+  || !/\b(?:SPPD|SPD)\b/i.test(input))return null;
+ const warnings:string[]=[];
+ const documentNumber=input.match(/(?:Lampiran\s+SPPD\s+Nomor|SPPD\s+Nomor)\s*:\s*([^\s\n]+)/i)?.[1]||'';
+ const docDateLine=lines.find(s=>/^Tanggal\s*:/i.test(s))||'';
+ const documentDate=findDate(docDateLine);
+ const signatureLine=lines.find(s=>/\b(?:Makassar|Jakarta|Surabaya|Bandung)\s*,\s*\d{1,2}\s+\w+\s+20\d\d/i.test(s))||'';
+ const signatureDate=findDate(signatureLine);
+ // The two dates are different meanings, yet a year mismatch requires manual review.
+ const receiptDate=signatureDate && documentDate && signatureDate.slice(0,4)!==documentDate.slice(0,4)
+   ? '' : (signatureDate||'');
+ if(signatureDate && documentDate && signatureDate.slice(0,4)!==documentDate.slice(0,4)){
+  warnings.push('PERBEDAAN TAHUN: tanggal SPPD '+documentDate+' tetapi tanda tangan '+signatureDate+
+   '. Tanggal kuitansi sengaja dikosongkan; verifikasi dokumen sumber sebelum simpan.');
+ }
+ if(!signatureDate)warnings.push('Tanggal tanda tangan perjalanan dinas tidak ditemukan; isi tanggal kuitansi secara manual.');
+ if(!documentDate)warnings.push('Tanggal pada lampiran SPPD tidak ditemukan.');
+ const start=lines.findIndex(s=>/\bPERINCIAN\s+BIAYA\b/i.test(s));
+ const end=lines.findIndex((s,i)=>i>start && /^\s*JUMLAH\b/i.test(s));
+ const detailLines=lines.slice(start+1,end>start?end:undefined);
+ const rows:ImportedRow[]=[];
+ // PDF text and OCR may split a row: concatenate fragments until the next numbered item.
+ const combined:string[]=[];
+ for(const line of detailLines){
+  if(/^\s*\d{1,2}\s+(?:Uang|Biaya|Transport|Tiket|Penginapan|Representatif)/i.test(line)){
+   combined.push(line);
+  }else if(combined.length && !/^(?:NO\s|KETERANGAN|JUMLAH\b)/i.test(line)){
+   combined[combined.length-1]+=' '+line;
+  }
+ }
+ for(const line of combined){
+  const m=line.match(/^\s*(\d{1,2})\s+(.+)$/);
+  if(!m)continue;
+  const amounts=moneyMatches(m[2]);
+  const last=amounts.at(-1);
+  if(!last)continue;
+  const bruto=last.value;
+  const prefix=m[2].slice(0,last.index).replace(/\s*Rp\.?\s*$/i,'').trim();
+  const volumeInfo=prefix.match(/\b(\d{1,3})\s*(Hari|Malam|Kali|OK|OH|JP|Orang|Paket)\s*[x×]\s*@\s*\.?\s*Rp\.?\s*([\d.,]+)/i);
+  const percent=prefix.match(/(\d{1,3}(?:[.,]\d+)?)\s*%/);
+  const volume=volumeInfo?Number(volumeInfo[1]):1;
+  const satuan=volumeInfo?volumeInfo[2]:'Kali';
+  const nominalTarif=volumeInfo?parseIdr(volumeInfo[3]):bruto;
+  const rawName=prefix.replace(/\s+\d{1,3}\s*(?:Hari|Malam|Kali|OK|OH|JP|Orang|Paket)\s*[x×]\s*@\s*\.?\s*Rp\.?\s*[\d.,]+/i,'').replace(/\s+\d{1,3}(?:[.,]\d+)?\s*%/,'').trim();
+  if(!rawName)continue;
+  const percentage=percent?Number(percent[1].replace(',','.')):null;
+  const effectiveTariff=bruto/volume;
+  let uraianItem=rawName;
+  if(percentage!==null){
+   uraianItem+=' ('+percentage+'% dari tarif '+new Intl.NumberFormat('id-ID').format(nominalTarif)+')';
+   if(Math.abs(nominalTarif*volume*percentage/100-bruto)>1)
+    warnings.push('Rincian '+m[1]+': tarif × persentase tidak cocok dengan jumlah baris; periksa nilai.');
+  }else if(volumeInfo && Math.abs(nominalTarif*volume-bruto)>1){
+   warnings.push('Rincian '+m[1]+': volume × tarif tidak cocok dengan nilai baris.');
+  }
+  rows.push({id:'import-travel-'+m[1],nama:'',uraianItem,volume,satuan,
+   tarifSatuan:effectiveTariff,bruto,ppnNominal:0,pphNominal:0,netto:bruto});
+ }
+ // In a two-column signatory table, the recipient is in the right column,
+ // not the left-column Bendahara Pengeluaran.
+ const receivedIndex=lines.findIndex(s=>/\bYang\s+Menerima\b/i.test(s));
+ const signArea=receivedIndex>=0?lines.slice(receivedIndex+1,receivedIndex+9):[];
+ const nameLine=signArea.find(s=>/\b[A-Z][a-z]+\s+[A-Z][a-z]+\b/.test(s)
+   && !/\b(?:NIP|PERHITUNGAN|SPPD|Bendahara|Pejabat)\b/i.test(s));
+ let recipient='';
+ if(nameLine){
+  const splits=nameLine.split(/\s{3,}/).map(v=>v.trim()).filter(Boolean);
+  recipient=(splits.length>1?splits.at(-1):nameLine).trim();
+ }
+ const recipientNipLine=signArea.find(s=>/\bNIP\.?\s*[\d\s]{18,}/i.test(s))||'';
+ const nipMatches=[...recipientNipLine.matchAll(/NIP\.?\s*(\d{18})/gi)];
+ const recipientNip=nipMatches.at(-1)?.[1]||'';
+ if(!recipient)warnings.push('Nama penerima perjalanan dinas belum terbaca dengan pasti; wajib dilengkapi.');
+ if(!recipientNip)warnings.push('NIP penerima belum terbaca; periksa dan lengkapi bila tersedia.');
+ for(const row of rows)row.nama=recipient;
+ const totalLine=end>start?lines[end]:'';
+ const total=moneyMatches(totalLine).at(-1)?.value??null;
+ const rowTotal=rows.reduce((acc,row)=>acc+row.bruto,0);
+ if(!rows.length)warnings.push('Rincian biaya SPPD belum terbaca otomatis; periksa tabel sumber.');
+ if(total!==null && Math.abs(total-rowTotal)>1)
+  warnings.push('Total SPPD '+total+' berbeda dengan penjumlahan baris '+rowTotal+'. Jangan simpan sebelum diperiksa.');
+ // SPPD number is source provenance, never reused as a new SIP-BP SPTB number.
+ if(!documentNumber)warnings.push('Nomor SPPD sumber tidak terbaca; isi referensi dokumen sumber secara manual.');
+ warnings.push('Sumber dana dan kode akun tidak dapat dipastikan dari SPPD ini; isi sesuai DIPA/POK.');
+ warnings.push('PPN dan PPh tidak ditampilkan pada tabel SPPD; nilai 0 masih harus diverifikasi, bukan dianggap bebas pajak.');
+ warnings.push('Jenis perjalanan luar kota hanya saran dari rute perjalanan; verifikasi jenis pembayaran.');
+ const isOutOfTown=/\b[A-Z]{3}\s*[-–]\s*[A-Z]{3}\b/i.test(input)||/\b(?:Tiket\s+Pesawat|Luar\s+Kota)\b/i.test(input);
+ return {rows,tanggalKuitansi:receiptDate,kodeAkun:'',kegiatan:'Perjalanan dinas',
+  nomorAsal:documentNumber,documentKind:'travel',suggestedSource:sourceHint(input),
+  suggestedType:isOutOfTown?'perjadin_luar_kota':undefined,recipientNip,
+  documentDate,signatureDate,
+  totalBruto:total,totalPPN:0,totalPPh:0,totalNetto:total,warnings};
+}
+
 export function parseReceiptText(text:string):ParsedReceipt{
  const input=text.replace(/\r/g,'').replace(/[\u00a0\u2007]/g,' ').trim();
  const lines=input.split(/\n+/).map(s=>s.replace(/\s+/g,' ').trim()).filter(Boolean);
  const warnings:string[]=[];
+ const travel=parseTravelReceipt(input,lines);
+ if(travel)return travel;
  const individual=parseIndividualReceipt(input,lines);
  if(individual){
   const warnings=individual.warnings.slice();
