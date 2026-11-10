@@ -3,6 +3,7 @@ export type ImportedRow={
  id:string;
  nama:string;uraianItem:string;volume:number;satuan:string;tarifSatuan:number;
  bruto:number;ppnNominal:number;pphNominal:number;netto:number;
+ tanggalPelaksanaan?:string;keterangan?:string;tarifDasar?:number;persentase?:number;
 };
 export type ParsedReceipt={
  rows:ImportedRow[];tanggalKuitansi:string;kodeAkun:string;kegiatan:string;
