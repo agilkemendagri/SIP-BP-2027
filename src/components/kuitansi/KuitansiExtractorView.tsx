@@ -49,9 +49,12 @@ export const KuitansiExtractorView:React.FC=()=>{
   setRows(parsed.rows);
   setWarnings(parsed.warnings);
   setDate(parsed.tanggalKuitansi);
+  // A PNBP/RM marking is a suggestion only, not proof of funding.
+  if(parsed.suggestedSource && currentRole==='bendahara')setSource(parsed.suggestedSource);
   setAccount(parsed.kodeAkun);
   setActivity(parsed.kegiatan);
   setSourceNumber(parsed.nomorAsal);
+  if(parsed.suggestedType)setType(parsed.suggestedType);
   setDescription(parsed.rows[0]?.uraianItem||'');
   setConfirmed(false);
   setImported(true);
@@ -111,6 +114,9 @@ export const KuitansiExtractorView:React.FC=()=>{
   if(!confirmed){setError('Centang konfirmasi hasil pemeriksaan sebelum menyimpan.');return;}
   if(!/^\d{6}$/.test(account)){setError('Kode akun harus 6 digit sesuai dokumen anggaran.');return;}
   if(!/^20\d{2}-\d{2}-\d{2}$/.test(date)){setError('Tanggal kuitansi wajib valid (YYYY-MM-DD).');return;}
+  if(imported && parseReceiptText(text).documentKind==='travel' && type==='jasa_profesi'){
+   setError('Dokumen SPPD harus diklasifikasikan sebagai perjalanan dinas dalam kota atau luar kota sebelum disimpan.');return;
+  }
   if(!activity.trim()){setError('Nama kegiatan wajib diisi.');return;}
   if(!rows.length){setError('Minimal ada satu baris rincian kuitansi.');return;}
   if(rows.some(r=>!r.nama.trim()||!r.uraianItem.trim()||r.bruto<=0||r.volume<=0||r.tarifSatuan<0||r.netto<0)){
@@ -129,7 +135,7 @@ export const KuitansiExtractorView:React.FC=()=>{
   setSaving(true);
   try{
    const penerimaList=rows.map(r=>({
-    id:r.id,nama:r.nama.trim(),uraianItem:r.uraianItem.trim(),volume:r.volume,
+    id:r.id,nama:r.nama.trim(),nip:r.nip?.trim()||undefined,uraianItem:r.uraianItem.trim(),volume:r.volume,
     satuan:r.satuan||'JP',tarifSatuan:r.tarifSatuan,bruto:r.bruto,
     ppnRate:r.bruto?Number((r.ppnNominal/r.bruto*100).toFixed(3)):0,
     ppnNominal:r.ppnNominal,pphRate:r.bruto?Number((r.pphNominal/r.bruto*100).toFixed(3)):0,
@@ -166,12 +172,20 @@ export const KuitansiExtractorView:React.FC=()=>{
   </div>
   {error&&<p role="alert" className="bg-red-50 border border-red-300 rounded-lg p-3 text-sm text-red-800">{error}</p>}
   {imported&&<div className="space-y-4">
+   <section className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 text-sm text-slate-800">
+    <strong>Format terdeteksi: {parseReceiptText(text).documentKind==='individual'?'Kuitansi individual (1 penerima)':parseReceiptText(text).documentKind==='collective'?'Kuitansi kolektif':parseReceiptText(text).documentKind==='travel'?'Kuitansi perjalanan dinas / SPPD':'Belum dikenali'}</strong>
+    <p className="text-xs mt-1">Sumber dana yang terindikasi: {parseReceiptText(text).suggestedSource||'belum diketahui'}. Periksa dokumen asli; penetapan sumber dana tetap menjadi tanggung jawab pengguna.</p>
+   </section>
    {warnings.length>0&&<section className="bg-amber-50 border border-amber-200 rounded-xl p-4">
     <h3 className="font-bold text-sm flex items-center gap-2 text-amber-900"><AlertTriangle size={16}/>Hal yang harus diperiksa</h3>
     <ul className="mt-2 list-disc pl-5 text-xs text-amber-900 space-y-1">{warnings.map((w,i)=><li key={i}>{w}</li>)}</ul>
    </section>}
    <section className="bg-white border rounded-xl p-5 space-y-4">
     <h3 className="font-bold text-base flex items-center gap-2"><FileText size={18}/>Identitas Kuitansi</h3>
+    {parseReceiptText(text).documentKind==='travel' && <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
+     <strong>Tinjauan khusus SPPD:</strong> tanggal lampiran {parseReceiptText(text).documentDate||'tidak terbaca'}; tanggal tanda tangan {parseReceiptText(text).signatureDate||'tidak terbaca'}.
+     Apabila tahunnya berbeda, pilih tanggal kuitansi yang benar setelah pemeriksaan manual. Rincian penginapan 30% dicatat berdasarkan jumlah yang benar-benar dibayarkan; persentase serta tarif referensi tetap ada pada uraian baris.
+    </div>}
     {sourceNumber&&<p className="text-xs text-slate-600">Nomor dokumen luar yang terdeteksi: <strong>{sourceNumber}</strong>. Nomor ini tidak digunakan sebagai nomor SPTB baru.</p>}
     <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
      <label className="text-xs font-semibold">Tanggal Kuitansi<input type="date" value={date} onChange={e=>{setDate(e.target.value);setConfirmed(false);}} className={input}/></label>
@@ -199,7 +213,7 @@ export const KuitansiExtractorView:React.FC=()=>{
    </section>
    <section className="bg-white border rounded-xl p-4">
     <div className="flex justify-between flex-wrap gap-3 items-center mb-3">
-     <h3 className="font-bold">Rincian Penerima ({rows.length} baris)</h3>
+     <h3 className="font-bold">{parseReceiptText(text).documentKind==='travel'?'Rincian Biaya Perjalanan Dinas':'Rincian Penerima'} ({rows.length} baris)</h3>
      <div className="flex gap-2">
       <button type="button" onClick={recalcRows} className="border border-blue-200 text-blue-700 px-3 py-2 rounded-lg text-xs flex items-center gap-1"><RefreshCw size={13}/>Hitung Netto</button>
       <button type="button" onClick={()=>{setRows(v=>[...v,freshRow()]);setConfirmed(false);}} className="bg-blue-700 text-white px-3 py-2 rounded-lg text-xs flex items-center gap-1"><Plus size={14}/>Tambah Baris</button>
@@ -207,10 +221,10 @@ export const KuitansiExtractorView:React.FC=()=>{
     </div>
     <div className="overflow-x-auto">
      <table className="min-w-[1120px] w-full text-xs border-collapse">
-      <thead><tr className="bg-slate-100">{['No','Nama Penerima','Uraian Pembayaran','Volume','Satuan','Tarif','Bruto','PPN','PPh','Netto',''].map(h=><th key={h} className="p-2 border">{h}</th>)}</tr></thead>
+      <thead><tr className="bg-slate-100">{['No','Nama Penerima','NIP Penerima','Uraian Pembayaran','Volume','Satuan','Tarif','Bruto','PPN','PPh','Netto',''].map(h=><th key={h} className="p-2 border">{h}</th>)}</tr></thead>
       <tbody>{rows.map((r,i)=><tr key={r.id}>
        <td className="border p-1 text-center">{i+1}</td>
-       {(['nama','uraianItem','volume','satuan','tarifSatuan','bruto','ppnNominal','pphNominal','netto'] as const).map(key=><td className="border p-1" key={key}>
+       {(['nama','nip','uraianItem','volume','satuan','tarifSatuan','bruto','ppnNominal','pphNominal','netto'] as const).map(key=><td className="border p-1" key={key}>
         <input aria-label={key+' baris '+(i+1)} className="w-full min-w-[65px] border rounded p-1.5" type={['volume','tarifSatuan','bruto','ppnNominal','pphNominal','netto'].includes(key)?'number':'text'} min={0} step="any" value={r[key]} onChange={e=>editRow(i,key,e.target.value)}/>
        </td>)}
        <td className="border p-1"><button type="button" aria-label={'Hapus baris '+(i+1)} onClick={()=>{setRows(v=>v.filter((_,idx)=>idx!==i));setConfirmed(false);}} className="p-1 text-red-700"><Trash2 size={16}/></button></td>
