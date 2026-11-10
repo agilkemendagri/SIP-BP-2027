@@ -42,6 +42,7 @@ export const KuitansiExtractorView:React.FC<{fixedType?:KuitansiType;onApplyToFo
  const [confirmed,setConfirmed]=useState(false);
  const [saving,setSaving]=useState(false);
  const [rawOpen,setRawOpen]=useState(false);
+ const [isSptbDocument,setIsSptbDocument]=useState(false);
  const [imported,setImported]=useState(false);
  const [expectedTotals,setExpectedTotals]=useState<{bruto:number|null;netto:number|null}>({bruto:null,netto:null});
  const sum=useMemo(()=>rows.reduce((s,row)=>({
@@ -52,6 +53,13 @@ export const KuitansiExtractorView:React.FC<{fixedType?:KuitansiType;onApplyToFo
  }),{bruto:0,ppn:0,pph:0,netto:0}),[rows]);
  const applyText=(raw:string)=>{
   setText(raw);
+  const sptb=/SURAT\s+PERNYATAAN\s+TANGGUNG\s+JAWAB\s+BELANJA/i.test(raw) || (/\bSPTB\s*\/\s*(?:RM|PNBP)\b/i.test(raw)&&/Kode\s+Satuan\s+Kerja/i.test(raw));
+  setIsSptbDocument(sptb);
+  if(sptb){
+    setRows([]);setWarnings(['Dokumen ini adalah Surat Pernyataan Tanggung Jawab Belanja (SPTB), bukan kuitansi sumber. Rekap SPTB tidak boleh otomatis dijadikan transaksi kuitansi baru karena berisiko mencatat pembayaran ganda.','Gunakan kuitansi atau daftar tanda terima asli pada Ekstraktor Kuitansi; untuk SPTB gunakan menu SPTB.']);
+    setDate('');setAccount('');setActivity('');setDescription('');setSourceNumber('');setExpectedTotals({bruto:null,netto:null});
+    setConfirmed(false);setImported(true);setRawOpen(true);return;
+  }
   const parsed=(fixedType==='jasa_profesi'?parseProfessionReceipt(raw):fixedType==='perjadin_luar_kota'?parseOutsideTravelReceipt(raw):fixedType==='perjadin_dalam_kota'?parseInsideTravelReceipt(raw):null)||parseReceiptText(raw);
   setRows(parsed.rows);
   setWarnings(parsed.warnings);
@@ -100,7 +108,7 @@ export const KuitansiExtractorView:React.FC<{fixedType?:KuitansiType;onApplyToFo
   if(!file)return;
   if(!fileTypes.includes(file.type)&&!/\.pdf$/i.test(file.name)){setError('Jenis berkas harus PNG, JPG, WEBP atau PDF.');return;}
   if(file.size>maxBytes||file.size===0){setError('Berkas kosong atau melebihi 12 MB.');return;}
-  setFileName(file.name);setError('');setIsBusy(true);setImported(false);
+  setFileName(file.name);setError('');setIsBusy(true);setImported(false);setIsSptbDocument(false);
   setConfirmed(false);setText('');setRows([]);setWarnings([]);
   setStatus('Membaca dokumen di browser...');
   const job={nonce:crypto.randomUUID(),file};
@@ -132,6 +140,7 @@ export const KuitansiExtractorView:React.FC<{fixedType?:KuitansiType;onApplyToFo
  const save=async()=>{
   setError('');
   if(isBusy||saving)return;
+  if(isSptbDocument){setError('Dokumen SPTB adalah rekap pembayaran, bukan kuitansi asal. Gunakan menu SPTB.');return;}
   if(!pejabatReady){setError("Konfigurasi pejabat belum tersedia. Buka Administrasi.");return;}
   if(!confirmed){setError('Centang konfirmasi hasil pemeriksaan sebelum menyimpan.');return;}
   if(!/^\d{6}$/.test(account)){setError('Kode akun harus 6 digit sesuai dokumen anggaran.');return;}
@@ -200,8 +209,9 @@ export const KuitansiExtractorView:React.FC<{fixedType?:KuitansiType;onApplyToFo
   </div>
   {!pejabatReady&&<p role="alert" className="bg-amber-50 border border-amber-200 rounded p-3 text-xs text-amber-900">Konfigurasi pejabat belum tersedia. {pejabatError}</p>}
   {error&&<p role="alert" className="bg-red-50 border border-red-300 rounded-lg p-3 text-sm text-red-800">{error}</p>}
+   {isSptbDocument&&<p role="alert" className="bg-amber-50 border border-amber-300 rounded-lg p-4 text-sm text-amber-950 font-medium">Dokumen SPTB terdeteksi. Fitur ini hanya untuk kuitansi atau tanda terima sumber. Dokumen SPTB tidak dapat disimpan sebagai kuitansi baru; gunakan menu SPTB.</p>}
   {imported&&<div className="space-y-4">
-   {onApplyToForm&&<button type="button" disabled={isBusy||saving||!rows.length} onClick={()=>{
+   {onApplyToForm&&<button type="button" disabled={isBusy||saving||!rows.length||isSptbDocument} onClick={()=>{
       if(!rows.length)return;
       if(expectedTotals.bruto!==null&&Math.abs(expectedTotals.bruto-sum.bruto)>1){setError('Total rincian tidak sesuai dokumen sumber. Koreksi sebelum menerapkan.');return;}
       if(!window.confirm('Terapkan '+rows.length+' rincian ke formulir manual? Periksa kembali seluruh kolom dan jangan langsung finalisasi.'))return;
@@ -274,7 +284,9 @@ export const KuitansiExtractorView:React.FC<{fixedType?:KuitansiType;onApplyToFo
      <input type="checkbox" checked={confirmed} onChange={e=>setConfirmed(e.target.checked)} className="mt-1"/>
      <span>Saya telah mencocokkan seluruh rincian, tanggal, sumber dana, kode akun, pajak dan nominal dengan dokumen asli, serta memastikan transaksi belum pernah dicatat dalam SIP-BP.</span>
     </label>
-    <button type="button" disabled={!confirmed||saving||isBusy} onClick={save} className="w-full mt-3 rounded-lg bg-emerald-700 text-white px-5 py-3 font-semibold disabled:opacity-50 flex items-center justify-center gap-2">
+    {error&&<p role="alert" className="bg-red-50 border border-red-300 rounded p-3 text-sm text-red-800">{error}</p>}
+     {(!pejabatReady||!rows.length||isSptbDocument)&&<p className="text-xs text-amber-800">{isSptbDocument?'Simpan dinonaktifkan untuk dokumen SPTB.':!pejabatReady?'Isi konfigurasi pejabat pada menu Administrasi terlebih dahulu.':'Belum ada rincian kuitansi yang valid untuk disimpan.'}</p>}
+     <button type="button" disabled={!confirmed||saving||isBusy||!rows.length||!pejabatReady||isSptbDocument} onClick={save} className="w-full mt-3 rounded-lg bg-emerald-700 text-white px-5 py-3 font-semibold disabled:opacity-50 flex items-center justify-center gap-2">
      <ShieldCheck size={18}/>{saving?'Menyimpan Draft...':'Simpan ke SIP-BP sebagai Draft'}
     </button>
     <p className="text-xs text-slate-500">Simpan akan menambah transaksi dan menerbitkan nomor SPTB baru. Tindakan ini tidak dapat dibatalkan hanya dengan menutup halaman.</p>
