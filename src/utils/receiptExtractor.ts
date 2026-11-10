@@ -222,7 +222,7 @@ function parseTravelReceipt(input:string,lines:string[]):ParsedReceipt|null {
  let recipient='';
  if(nameLine){
   const splits=nameLine.split(/\s{3,}/).map(v=>v.trim()).filter(Boolean);
-  recipient=(splits.length>1?splits.at(-1):nameLine).trim();
+  recipient=(splits.length>1?(splits.at(-1)||nameLine):nameLine).trim();
  }
  const recipientNipLine=signArea.find(s=>/\bNIP\.?\s*[\d\s]{18,}/i.test(s))||'';
  const nipMatches=[...recipientNipLine.matchAll(/NIP\.?\s*(\d{18})/gi)];
