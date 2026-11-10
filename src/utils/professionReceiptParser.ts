@@ -94,9 +94,80 @@ const reliableLayout=(rows:ImportedRow[])=>rows.length>0&&rows.every(r=>
  &&/^(?:Honor|Honorarium)\b/i.test(r.uraianItem)
  &&r.volume*r.tarifSatuan===r.bruto&&r.bruto-r.pphNominal===r.netto
 );
+
+/** Parse OCR where table cells have | separators and row headings wrap across lines.
+ * Never mix date/activity fragments into the recipient name.  Amount correction
+ * based on net+tax is explicitly reported as a warning for human review.
+ */
+function collectivePipeOcr(text:string):{rows:ImportedRow[];warnings:string[]}|null{
+ const lines=text.replace(/\r/g,'').split('\n').map(compact).filter(Boolean);
+ const indices=lines.flatMap((line,i)=>/^\d{1,2}\s*\|/.test(line)?[i]:[]);
+ if(!indices.length)return null;
+ const warnings:string[]=[];
+ const rows:ImportedRow[]=[];
+ const amounts=(s:string)=>Number(s.replace(/[^\d]/g,''));
+ const recognizedAmount=(s:string)=>/^\s*(?:Rp\.?\s*)?\d{1,3}(?:[., ]\d{3})*\s*$/.test(s);
+ for(let i=0;i<indices.length;i++){
+  const pos=indices[i],end=indices[i+1]??lines.length;
+  const raw=lines[pos];
+  const fields=raw.split('|').map(compact);
+  const no=Number(fields[0]),recipientFragment=fields[1]||'';
+  if(no!==i+1){warnings.push('Nomor urut OCR tidak berurutan pada baris '+(i+1)+'.');continue;}
+  // Lines immediately before numbered row often contain name + description.
+  const prev=i===0?0:indices[i-1]+1;
+  const prelude=lines.slice(prev,pos).filter(x=>!/^(?:JUMLAH|TOTAL|Makassar|Bendahara|Pejabat|No\s+Nama)/i.test(x));
+  const prefixedName=prelude.filter(x=>/^Ryan\b/i.test(x)).at(-1)||'';
+  const matchHonor=/\bHonor(?:arium)?\b/i.exec(prefixedName);
+  const nameHead=matchHonor?prefixedName.slice(0,matchHonor.index).trim():prefixedName.replace(/\bHonor.*$/i,'').trim();
+  const descHead=matchHonor?prefixedName.slice(matchHonor.index).trim():'';
+  const nameTail=recipientFragment.replace(/\b(?:Honor|Pembinaan|tanggal|April|Mei|Juni|20\d{2})\b.*$/i,'').trim();
+  const name=compact((nameHead+' '+nameTail).replace(/[|]/g,'').replace(/\s+\d\.\s*$/,' S.')).replace(/[, ]+$/,'');
+  const usableName=!/\b(?:April|Mei|tanggal|Honor|Latsar)\b/i.test(name)&&name.length>4;
+  // Extract the money fields from right to left, since OCR can merge JP and tariff.
+  const right=fields.slice(3);
+  const numeric=right.map(x=>({raw:x,val:amounts(x)})).filter(x=>x.val>0);
+  let qty=0,tariff=0,bruto=0,tax=0,net=0,reportedGross=0;
+  if(numeric.length>=5){
+   const tail=numeric.slice(0,5);
+   qty=tail[0].val;tariff=tail[1].val;bruto=tail[2].val;tax=tail[3].val;net=tail[4].val;
+   reportedGross=bruto;
+  }else if(numeric.length===4){
+   // e.g. OCR "1200 000" instead of "1 | 200.000".
+   const first=numeric[0].raw.replace(/[^\d]/g,'');
+   if(/^[1-9]\d{6}$/.test(first)){
+    qty=Number(first.slice(0,1));tariff=Number(first.slice(1));
+    reportedGross=numeric[1].val;tax=numeric[2].val;net=numeric[3].val;
+    bruto=reportedGross;
+    warnings.push('Baris '+no+': OCR menggabungkan JP dan tarif; pecahan '+qty+' JP × Rp'+tariff.toLocaleString('id-ID')+' perlu diperiksa.');
+   }
+  }
+  if(!usableName||!qty||!tariff||!tax||!net){
+   warnings.push('Baris '+no+': kolom nama/nominal tidak cukup jelas; periksa teks OCR asli.');
+   continue;
+  }
+  const calculated=qty*tariff;
+  if(bruto!==calculated || bruto-tax!==net){
+   if(calculated===net+tax){
+    warnings.push('Baris '+no+': bruto terbaca Rp'+reportedGross.toLocaleString('id-ID')+' tetapi JP × tarif dan netto + pajak = Rp'+calculated.toLocaleString('id-ID')+'. Nilai hitung dipakai sementara; WAJIB dicocokkan dengan dokumen.');
+    bruto=calculated;
+   }else{
+    warnings.push('Baris '+no+': nilai bruto, JP × tarif, pajak, atau netto tidak konsisten. Koreksi sebelum simpan.');
+   }
+  }
+  let description=compact(descHead+' '+(fields[2]||''));
+  const after=lines.slice(pos+1,end).filter(x=>!/^Ryan\b/i.test(x)&&!/^(?:JUMLAH|TOTAL|Makassar|Bendahara|Pejabat)/i.test(x));
+  if(after.length)description=compact(description+' '+after.join(' '));
+  if(!/^Honor\b/i.test(description))warnings.push('Baris '+no+': awal uraian Honor tidak terdeteksi sempurna.');
+  rows.push(makeRow(no,name,description,qty,tariff,bruto,tax,net));
+ }
+ if(rows.length!==indices.length)warnings.push('Hanya '+rows.length+' dari '+indices.length+' baris dokumen yang dikenali; lengkapi sebelum menerapkan.');
+ if(rows.some(r=>/\b(?:April|Mei|tanggal)\b/i.test(r.nama)))warnings.push('Nama penerima berisi tanggal; koreksi hasil OCR.');
+ return {rows,warnings};
+}
 export function parseProfessionReceipt(text:string):ParsedReceipt|null{
  const input=text.replace(/[\u00a0\u2007]/g,' ');
- const isCollective=/\bNo\s+Nama\s+Untuk Pembayaran\s+JP\b/i.test(compact(input));
+ const pipeOcr=/\bTANDA\s+TERIMA\b/i.test(input)&&/^\s*\d{1,2}\s*\|/m.test(input)?collectivePipeOcr(input):null;
+ const isCollective=Boolean(pipeOcr)||/\bNo\s+Nama\s+Untuk Pembayaran\s+JP\b/i.test(compact(input));
  const isIndividual=/Jumlah\s+honor\s*:/i.test(input);
  if(!isCollective&&!isIndividual)return null;
  const layout=isCollective?collectiveLayout(input):[];
@@ -104,15 +175,15 @@ export function parseProfessionReceipt(text:string):ParsedReceipt|null{
  const layoutOk=reliableLayout(layout);
  const readingOk=reliableLayout(reading);
  // Prefer reading order when it contains at least as many complete rows.
- const candidate=isIndividual?individual(input):readingOk&&(!layoutOk||reading.length>=layout.length)?reading:layoutOk?layout:[];
+ const candidate=isIndividual?individual(input):pipeOcr?pipeOcr.rows:readingOk&&(!layoutOk||reading.length>=layout.length)?reading:layoutOk?layout:[];
  const rows=candidate;
  const totals=new RegExp('JUMLAH\\s+'+nominal+'\\s+'+nominal+'\\s+'+nominal,'i').exec(input);
  const totalBruto=isIndividual?rows[0]?.bruto??null:totals?money(totals[1]):null;
  const totalPPh=isIndividual?rows[0]?.pphNominal??null:totals?money(totals[2]):null;
  const totalNetto=isIndividual?rows[0]?.netto??null:totals?money(totals[3]):null;
- const warnings:string[]=[];
+ const warnings:string[]=[...(pipeOcr?.warnings||[])];
  if(!rows.length)warnings.push('Rincian jasa profesi tidak dapat dipastikan; perbaiki hasil OCR sebelum menyimpan.');
- if(isCollective&&layout.length!==reading.length)
+ if(isCollective&&!pipeOcr&&layout.length!==reading.length)
    warnings.push('Hasil pembacaan tabel berbeda antarmetode. Pastikan seluruh baris tanda terima terdeteksi.');
  if(isCollective && rows.length && rows.some(r=>r.nama.includes('|')||/\d{1,2}\s+(?:April|Mei|Juni)\b/i.test(r.nama)))
    warnings.push('Sebagian uraian/tanggal terbaca sebagai nama. Periksa ulang baris terkait.');
