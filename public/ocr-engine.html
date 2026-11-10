@@ -2,7 +2,7 @@
 <html lang="id">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' 'wasm-unsafe-eval' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net blob:; worker-src blob: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; connect-src https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://tessdata.projectnaptha.com; img-src blob: data:; style-src 'unsafe-inline';">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' 'wasm-unsafe-eval' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://unpkg.com blob:; worker-src blob: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://unpkg.com; connect-src https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://unpkg.com https://tessdata.projectnaptha.com blob:; img-src blob: data:; style-src 'unsafe-inline';">
 <title>OCR kuitansi terisolasi</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/5.1.1/tesseract.min.js"></script>
@@ -16,6 +16,12 @@
   const MAX_BYTES=12*1024*1024;
   let busy=false;
   const progress=(nonce,stage,value)=>send({source:"sipbp-ocr",nonce,type:"progress",stage,value});
+  const describeError=(error,phase)=>{
+    const raw=error instanceof Error?error.message:String(error||"Kesalahan tidak dikenal");
+    if(/failed to fetch|networkerror|network request failed|load failed/i.test(raw))
+      return "Gagal mengunduh komponen OCR saat "+phase+". Periksa koneksi ke cdn.jsdelivr.net / cdnjs.cloudflare.com, nonaktifkan pemblokir jaringan bila diperlukan, kemudian coba lagi. (Detail: "+raw+")";
+    return "Gagal saat "+phase+": "+raw;
+  };
   function joinText(items){
     const byRow=new Map();
     for(const item of items){
@@ -27,6 +33,7 @@
       byRow.get(y).push({x:xy[4],str});
     }
     const allCells=[...byRow.values()].flat();
+    if(!allCells.length)return "";
     const minX=Math.min(...allCells.map(c=>c.x));
     return [...byRow.entries()].sort((a,b)=>b[0]-a[0])
       .map(([,cells])=>{
@@ -40,34 +47,48 @@
         return line.trimEnd();
       }).join("\n");
   }
-  async function recognize(canvasOrBlob,worker){
-    const result=await worker.recognize(canvasOrBlob);
-    return result.data.text||"";
-  }
   async function processFile(job){
     const {nonce,name,mime,buffer}=job;
     if(!(buffer instanceof ArrayBuffer)||buffer.byteLength>MAX_BYTES||buffer.byteLength===0)throw Error("Berkas tidak valid atau melebihi 12 MB.");
     const pdf= mime==="application/pdf" || /\.pdf$/i.test(name);
     if(!pdf&&!/^image\/(png|jpeg|webp)$/.test(mime))throw Error("Gunakan PDF, PNG, JPEG atau WEBP.");
-    if(!self.pdfjsLib || !self.Tesseract)throw Error("Pustaka OCR/PDF gratis gagal dimuat. Periksa koneksi ke CDN.");
-    let ocrWorker;
+    if(!self.Tesseract)throw Error("Pustaka Tesseract tidak dapat dimuat; periksa akses CDN.");
+    if(pdf&&!self.pdfjsLib)throw Error("Pustaka PDF tidak dapat dimuat; periksa akses CDN.");
+    let ocrWorker,phase="menyiapkan dokumen";
     const getWorker=async()=>{
-      if(!ocrWorker){
-        progress(nonce,"Menyiapkan OCR bahasa Indonesia",0);
-        try{ocrWorker=await Tesseract.createWorker("ind+eng",1,{
-          logger:x=>{if(x.status)progress(nonce,x.status,Math.round((x.progress||0)*100));}
-        });}
-        catch(e){ocrWorker=await Tesseract.createWorker("eng");}
+      if(ocrWorker)return ocrWorker;
+      const common={
+        workerPath:"https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/worker.min.js",
+        corePath:"https://cdn.jsdelivr.net/npm/tesseract.js-core@5.1.1",
+        logger:x=>{if(x.status)progress(nonce,x.status,Math.round((x.progress||0)*100));}
+      };
+      let firstError;
+      for(const candidate of [
+        {lang:"ind",langPath:"https://cdn.jsdelivr.net/npm/@tesseract.js-data/ind@1.0.0/4.0.0_best_int"},
+        {lang:"eng",langPath:"https://cdn.jsdelivr.net/npm/@tesseract.js-data/eng@1.0.0/4.0.0_best_int"}
+      ]){
+        try{
+          phase="mengunduh OCR bahasa "+candidate.lang;
+          progress(nonce,phase,0);
+          ocrWorker=await Tesseract.createWorker(candidate.lang,1,{...common,langPath:candidate.langPath});
+          return ocrWorker;
+        }catch(error){
+          if(!firstError)firstError=error;
+          progress(nonce,"OCR "+candidate.lang+" tidak tersedia, mencoba alternatif",0);
+        }
       }
-      return ocrWorker;
+      throw Error("Semua sumber bahasa OCR gagal. "+describeError(firstError,phase));
     };
     try {
       if(!pdf){
         progress(nonce,"Membaca gambar",0);
         const blob=new Blob([buffer],{type:mime});
-        const objectUrl=URL.createObjectURL(blob);
-        try{return {text:await recognize(objectUrl,await getWorker()),pages:1,mode:"ocr"};}
-        finally{URL.revokeObjectURL(objectUrl);}
+        // Blob langsung agar tidak gagal fetch URL blob dari worker dalam iframe sandbox.
+        phase="memproses screenshot/gambar";
+        const worker=await getWorker();
+        phase="membaca teks gambar";
+        const result=await worker.recognize(blob);
+        return {text:result.data.text||"",pages:1,mode:"ocr"};
       }
       pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
       progress(nonce,"Membuka PDF",0);
@@ -90,13 +111,17 @@
           const ctx=canvas.getContext("2d",{willReadFrequently:true});
           if(!ctx)throw Error("Canvas browser tidak tersedia.");
           await page.render({canvasContext:ctx,viewport}).promise;
-          results.push(await recognize(canvas,await getWorker()));
-          canvas.width=0;canvas.height=0;
+          try{
+            phase="mengenali teks PDF halaman "+i;
+            const result=await (await getWorker()).recognize(canvas);
+            results.push(result.data.text||"");
+          }finally{canvas.width=0;canvas.height=0;}
         }
         progress(nonce,"Memproses halaman "+i+"/"+pages,Math.round(i/pages*100));
       }
       return {text:results.join("\n--- HALAMAN ---\n"),pages,mode:usedOcr?"pdf+ocr":"pdf-text",truncated:doc.numPages>pages};
-    } finally {
+    } catch(error){throw Error(describeError(error,phase));}
+    finally {
       if(ocrWorker)await ocrWorker.terminate().catch(()=>{});
     }
   }
