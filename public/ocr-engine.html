@@ -26,9 +26,19 @@
       if(!byRow.has(y))byRow.set(y,[]);
       byRow.get(y).push({x:xy[4],str});
     }
+    const allCells=[...byRow.values()].flat();
+    const minX=Math.min(...allCells.map(c=>c.x));
     return [...byRow.entries()].sort((a,b)=>b[0]-a[0])
-      .map(([,cells])=>cells.sort((a,b)=>a.x-b.x).map(c=>c.str).join(" "))
-      .join("\n");
+      .map(([,cells])=>{
+        let line="",end=0;
+        for(const cell of cells.sort((a,b)=>a.x-b.x)){
+          const column=Math.max(0,Math.round((cell.x-minX)/5));
+          const gap=Math.max(1,Math.min(120,column-end));
+          line+=" ".repeat(gap)+cell.str;
+          end=Math.max(end,column+cell.str.length);
+        }
+        return line.trimEnd();
+      }).join("\n");
   }
   async function recognize(canvasOrBlob,worker){
     const result=await worker.recognize(canvasOrBlob);
