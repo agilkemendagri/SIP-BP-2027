@@ -5,6 +5,7 @@
 
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
+import {PerjadinReceiptPreview} from './PerjadinReceiptPreview';
 import {usePejabatSettings,signerForFunding} from '../../context/PejabatSettingsContext';
 import { SumberDana, PenerimaItem } from '../../types';
 import { formatRupiah } from '../../utils/formatters';
@@ -27,6 +28,7 @@ interface RecipientRow {
 
 export const KuitansiPerjadinDalamKotaForm: React.FC = () => {
   const { currentRole, addTransaksi, setActiveView, showToast } = useApp();
+  const [previewOpen,setPreviewOpen]=useState(false);
   const {value:pejabat,ready:pejabatReady}=usePejabatSettings();
 
   const defaultSumberDana: SumberDana = currentRole === 'bpp_pnbp' ? 'PNBP' : 'RM';
@@ -121,7 +123,7 @@ export const KuitansiPerjadinDalamKotaForm: React.FC = () => {
     if(!pejabatReady){showToast('Konfigurasi pejabat belum tersedia. Buka Administrasi.','warning');return;}
     // Validate rows
     const hasEmptyName = recipients.some(r => !r.nama.trim());
-    if (hasEmptyName || !kegiatan.trim() || totalBruto <= 0) {
+    if (hasEmptyName || totalBruto <= 0) {
       showToast('Harap lengkapi semua nama anggota tim dan rincian!', 'warning');
       return;
     }
@@ -155,10 +157,10 @@ export const KuitansiPerjadinDalamKotaForm: React.FC = () => {
       tanggalKuitansi,
       sumberDana,
       jenisKuitansi: 'perjadin_dalam_kota',
-      kegiatan,
+      kegiatan: recipients.map(x=>x.uraianItem.trim()).filter(Boolean).join('; ') || 'Perjalanan Dinas Dalam Kota',
       kodeAkun,
       namaAkun: 'Belanja Perjalanan Dinas Dalam Kota',
-      uraian,
+      uraian: recipients.map(x=>x.uraianItem.trim()).filter(Boolean).join('; ') || 'Biaya Perjalanan Dinas Dalam Kota',
       ringkasanPenerima,
       penerimaList,
       totalBruto,
@@ -171,10 +173,10 @@ export const KuitansiPerjadinDalamKotaForm: React.FC = () => {
       ppkNip: pejabat.ppkNip,
       bendaharaNama: signerForFunding(pejabat,sumberDana).nama,
       bendaharaNip: signerForFunding(pejabat,sumberDana).nip,
-      suratTugasNomor,
-      tanggalTugas,
-      kotaAsal,
-      kotaTujuan,
+      suratTugasNomor: '',
+      tanggalTugas: '',
+      kotaAsal: '',
+      kotaTujuan: '',
     });
 
     setActiveView('transaksi');
@@ -261,68 +263,6 @@ export const KuitansiPerjadinDalamKotaForm: React.FC = () => {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-3">
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Nomor Surat Tugas Tim
-              </label>
-              <input
-                type="text"
-                value={suratTugasNomor}
-                onChange={e => setSuratTugasNomor(e.target.value)}
-                className="w-full px-3 py-2 text-xs rounded-lg border border-slate-300 font-mono focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Tanggal Tugas
-              </label>
-              <input
-                type="text"
-                value={tanggalTugas}
-                onChange={e => setTanggalTugas(e.target.value)}
-                className="w-full px-3 py-2 text-xs rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Lokasi / Wilayah Tujuan
-              </label>
-              <input
-                type="text"
-                value={kotaTujuan}
-                onChange={e => setKotaTujuan(e.target.value)}
-                placeholder="Pasar Kranji, Kota Bekasi"
-                className="w-full px-3 py-2 text-xs rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Nama Kegiatan DIPA
-              </label>
-              <input
-                type="text"
-                value={kegiatan}
-                onChange={e => setKegiatan(e.target.value)}
-                className="w-full px-3 py-2 text-xs rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-              />
-            </div>
-          </div>
-
-          <div className="mt-3">
-            <label className="block text-xs font-semibold text-slate-700 mb-1">
-              Uraian Pembayaran Kuitansi
-            </label>
-            <input
-              type="text"
-              value={uraian}
-              onChange={e => setUraian(e.target.value)}
-              className="w-full px-3 py-2 text-xs rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-            />
-          </div>
         </div>
 
         {/* Section 2: Tabel Daftar Penerima Kolektif */}
@@ -508,6 +448,7 @@ export const KuitansiPerjadinDalamKotaForm: React.FC = () => {
         </div>
 
         {/* Action Buttons */}
+        <button type="button" onClick={()=>setPreviewOpen(true)} className="rounded-lg border border-blue-300 text-blue-700 px-4 py-2 text-sm font-semibold">Pratinjau Kuitansi</button>
         <div className="pt-2 flex flex-col sm:flex-row items-center justify-end gap-3 border-t border-slate-100">
           <button
             type="button"
@@ -528,6 +469,7 @@ export const KuitansiPerjadinDalamKotaForm: React.FC = () => {
           </button>
         </div>
       </div>
+      <PerjadinReceiptPreview open={previewOpen} onClose={()=>setPreviewOpen(false)} title="Perjadin Dalam Kota" date={tanggalKuitansi} source={sumberDana} account={kodeAkun} details={calculatedItems.map(x=>({nama:x.nama,uraian:x.uraianItem,volume:x.volume,satuan:x.satuan,tarif:x.tarifSatuan,bruto:x.bruto,pph:x.pphNominal,netto:x.netto}))}/>
     </div>
   );
 };
