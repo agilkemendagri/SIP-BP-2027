@@ -43,6 +43,7 @@ export const KuitansiExtractorView:React.FC<{fixedType?:KuitansiType;onApplyToFo
  const [saving,setSaving]=useState(false);
  const [rawOpen,setRawOpen]=useState(false);
  const [isSptbDocument,setIsSptbDocument]=useState(false);
+ const [sourceIsCollective,setSourceIsCollective]=useState(false);
  const [imported,setImported]=useState(false);
  const [expectedTotals,setExpectedTotals]=useState<{bruto:number|null;netto:number|null}>({bruto:null,netto:null});
  const sum=useMemo(()=>rows.reduce((s,row)=>({
@@ -55,6 +56,7 @@ export const KuitansiExtractorView:React.FC<{fixedType?:KuitansiType;onApplyToFo
   setText(raw);
   const sptb=/SURAT\s+PERNYATAAN\s+TANGGUNG\s+JAWAB\s+BELANJA/i.test(raw) || (/\bSPTB\s*\/\s*(?:RM|PNBP)\b/i.test(raw)&&/Kode\s+Satuan\s+Kerja/i.test(raw));
   setIsSptbDocument(sptb);
+  setSourceIsCollective(fixedType==='jasa_profesi' && (/\bTANDA\s+TERIMA\b/i.test(raw) && (/^\s*\d{1,2}\s*\|/m.test(raw)||/\bNo\s+Nama\s+Untuk Pembayaran\b/i.test(raw))));
   if(sptb){
     setRows([]);setWarnings(['Dokumen ini adalah Surat Pernyataan Tanggung Jawab Belanja (SPTB), bukan kuitansi sumber. Rekap SPTB tidak boleh otomatis dijadikan transaksi kuitansi baru karena berisiko mencatat pembayaran ganda.','Gunakan kuitansi atau daftar tanda terima asli pada Ekstraktor Kuitansi; untuk SPTB gunakan menu SPTB.']);
     setDate('');setAccount('');setActivity('');setDescription('');setSourceNumber('');setExpectedTotals({bruto:null,netto:null});
@@ -108,7 +110,7 @@ export const KuitansiExtractorView:React.FC<{fixedType?:KuitansiType;onApplyToFo
   if(!file)return;
   if(!fileTypes.includes(file.type)&&!/\.pdf$/i.test(file.name)){setError('Jenis berkas harus PNG, JPG, WEBP atau PDF.');return;}
   if(file.size>maxBytes||file.size===0){setError('Berkas kosong atau melebihi 12 MB.');return;}
-  setFileName(file.name);setError('');setIsBusy(true);setImported(false);setIsSptbDocument(false);
+  setFileName(file.name);setError('');setIsBusy(true);setImported(false);setIsSptbDocument(false);setSourceIsCollective(false);
   setConfirmed(false);setText('');setRows([]);setWarnings([]);
   setStatus('Membaca dokumen di browser...');
   const job={nonce:crypto.randomUUID(),file};
@@ -213,9 +215,10 @@ export const KuitansiExtractorView:React.FC<{fixedType?:KuitansiType;onApplyToFo
   {imported&&<div className="space-y-4">
    {onApplyToForm&&<button type="button" disabled={isBusy||saving||!rows.length||isSptbDocument} onClick={()=>{
       if(!rows.length)return;
+       if(warnings.some(w=>/WAJIB dicocokkan|OCR menggabungkan|kolom nama\/nominal tidak cukup jelas|nilai bruto.*tidak konsisten/i.test(w))&&!confirmed){setError('Ada angka OCR yang meragukan. Cocokkan ketiga baris dengan dokumen asli dan centang konfirmasi pemeriksaan sebelum menerapkan.');return;}
       if(expectedTotals.bruto!==null&&Math.abs(expectedTotals.bruto-sum.bruto)>1){setError('Total rincian tidak sesuai dokumen sumber. Koreksi sebelum menerapkan.');return;}
       if(!window.confirm('Terapkan '+rows.length+' rincian ke formulir manual? Periksa kembali seluruh kolom dan jangan langsung finalisasi.'))return;
-      onApplyToForm({rows,date,account,activity,description,sourceNumber,tanggalSppd,telahDibayarSemula:paidBefore,sisaKurangLebih:balance});
+      onApplyToForm({rows,date,account,activity,description,sourceNumber,isCollective:sourceIsCollective,tanggalSppd,telahDibayarSemula:paidBefore,sisaKurangLebih:balance});
      }} className="w-full bg-blue-700 text-white font-semibold px-4 py-3 rounded-lg disabled:opacity-50">
        Terapkan Hasil Ekstraksi ke Formulir Kuitansi
      </button>}
