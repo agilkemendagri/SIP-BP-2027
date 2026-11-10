@@ -98,6 +98,19 @@ export const KuitansiExtractorView:React.FC<{fixedType?:KuitansiType;onApplyToFo
   pending.current=job;
   if(ready.current)send(job).catch(e=>{setError(String(e));setIsBusy(false);});
  };
+ useEffect(()=>{
+  const handlePaste=(event:ClipboardEvent)=>{
+   if(event.defaultPrevented||isBusy||saving)return;
+   const target=event.target as HTMLElement|null;
+   if(target?.closest('input,textarea,[contenteditable="true"]'))return;
+   const file=Array.from(event.clipboardData?.files||[]).find(f=>/^image\/(png|jpeg|webp)$/.test(f.type));
+   if(!file)return;
+   event.preventDefault();
+   selectFile(file);
+  };
+  window.addEventListener('paste',handlePaste);
+  return ()=>window.removeEventListener('paste',handlePaste);
+ },[isBusy,saving]);
  const editRow=(index:number,key:keyof ImportedRow,value:string)=>{
   setConfirmed(false);
   const numeric=['volume','tarifSatuan','bruto','ppnNominal','pphNominal','netto'];
