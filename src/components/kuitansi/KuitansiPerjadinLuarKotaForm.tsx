@@ -5,6 +5,7 @@
 
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
+import {usePejabatSettings,signerForFunding} from '../../context/PejabatSettingsContext';
 import { SumberDana, PenerimaItem } from '../../types';
 import { formatRupiah } from '../../utils/formatters';
 import { Plane, Save, CheckCircle2, ArrowLeft, Plus, Trash2, MapPin } from 'lucide-react';
@@ -20,6 +21,7 @@ interface BiayaItem {
 
 export const KuitansiPerjadinLuarKotaForm: React.FC = () => {
   const { currentRole, addTransaksi, setActiveView, showToast } = useApp();
+  const {value:pejabat,ready:pejabatReady}=usePejabatSettings();
 
   const defaultSumberDana: SumberDana = currentRole === 'bpp_pnbp' ? 'PNBP' : 'RM';
   const [sumberDana, setSumberDana] = useState<SumberDana>(defaultSumberDana);
@@ -103,6 +105,7 @@ export const KuitansiPerjadinLuarKotaForm: React.FC = () => {
   };
 
   const handleSubmit = async (targetStatus: 'Draft' | 'Final') => {
+    if(!pejabatReady){showToast('Konfigurasi pejabat belum tersedia. Buka Administrasi.','warning');return;}
     if (!namaPelaksana.trim() || !kegiatan.trim() || totalBruto <= 0) {
       showToast('Harap lengkapi nama pelaksana, kegiatan, dan rincian biaya!', 'warning');
       return;
@@ -151,10 +154,10 @@ export const KuitansiPerjadinLuarKotaForm: React.FC = () => {
       totalNetto,
       status: targetStatus,
       sudahSakti: false,
-      ppkNama: '',
-      ppkNip: '',
-      bendaharaNama: '',
-      bendaharaNip: '',
+      ppkNama: pejabat.ppkNama,
+      ppkNip: pejabat.ppkNip,
+      bendaharaNama: signerForFunding(pejabat,sumberDana).nama,
+      bendaharaNip: signerForFunding(pejabat,sumberDana).nip,
       suratTugasNomor,
       tanggalTugas,
       kotaAsal,
