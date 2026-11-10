@@ -9,7 +9,7 @@ const freshRow=():ImportedRow=>({id:crypto.randomUUID(),nama:'',uraianItem:'',vo
 const fileTypes=['image/png','image/jpeg','image/webp','application/pdf'];
 const maxBytes=12*1024*1024;
 
-export const KuitansiExtractorView:React.FC=()=>{
+export const KuitansiExtractorView:React.FC<{fixedType?:KuitansiType}>=({fixedType})=>{
  const {currentRole,currentUser,addTransaksi,setActiveView,visibleTransaksi}=useApp();
  const frame=useRef<HTMLIFrameElement>(null);
  const pending=useRef<{nonce:string;file:File}|null>(null);
@@ -23,7 +23,7 @@ export const KuitansiExtractorView:React.FC=()=>{
  const [rows,setRows]=useState<ImportedRow[]>([]);
  const [date,setDate]=useState('');
  const [source,setSource]=useState<SumberDana>(currentRole==='bpp_pnbp'?'PNBP':'RM');
- const [type,setType]=useState<KuitansiType>('jasa_profesi');
+ const [type,setType]=useState<KuitansiType>(fixedType||'jasa_profesi');
  const [account,setAccount]=useState('');
  const [accountName,setAccountName]=useState('');
  const [activity,setActivity]=useState('');
@@ -152,7 +152,7 @@ export const KuitansiExtractorView:React.FC=()=>{
  return <div className="max-w-6xl mx-auto space-y-4">
   <iframe ref={frame} sandbox="allow-scripts" src="/ocr-engine.html" title="Mesin OCR kuitansi terisolasi" className="hidden" aria-hidden="true"/>
   <div className="bg-white rounded-xl border border-slate-200 p-5">
-   <h2 className="font-bold text-lg flex items-center gap-2"><FileScan className="text-blue-700" size={22}/>Ekstraktor Kuitansi dari Luar SIP-BP</h2>
+   <h2 className="font-bold text-lg flex items-center gap-2"><FileScan className="text-blue-700" size={22}/>{fixedType==='jasa_profesi'?'Ekstraktor Kuitansi Jasa Profesi':fixedType==='perjadin_luar_kota'?'Ekstraktor Kuitansi Perjadin Luar Kota':fixedType==='perjadin_dalam_kota'?'Ekstraktor Kuitansi Perjadin Dalam Kota':'Ekstraktor Kuitansi dari Luar SIP-BP'}</h2>
    <p className="text-sm text-slate-600 mt-1">Unggah kuitansi kolektif/individual yang sudah dibuat di luar SIP-BP. Hasil OCR adalah draf pemeriksaan, bukan bukti transaksi yang telah diverifikasi.</p>
    <div className="mt-4 flex flex-col md:flex-row md:items-center gap-3">
     <label className="inline-flex items-center gap-2 rounded-lg bg-blue-700 text-white px-4 py-2.5 font-semibold text-sm cursor-pointer hover:bg-blue-800">
@@ -181,7 +181,7 @@ export const KuitansiExtractorView:React.FC=()=>{
       </select>
      </label>
      <label className="text-xs font-semibold">Jenis Kuitansi
-      <select className={input} value={type} onChange={e=>{setType(e.target.value as KuitansiType);setConfirmed(false);}}>
+      <select className={input} value={type} disabled={Boolean(fixedType)} onChange={e=>{setType(e.target.value as KuitansiType);setConfirmed(false);}}>
        <option value="jasa_profesi">Jasa Profesi / Honorarium</option>
        <option value="perjadin_luar_kota">Perjadin Luar Kota</option>
        <option value="perjadin_dalam_kota">Perjadin Dalam Kota</option>
