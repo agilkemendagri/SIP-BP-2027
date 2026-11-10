@@ -1,6 +1,7 @@
 import React,{useEffect,useMemo,useRef,useState} from 'react';
 import {FileScan,Upload,ShieldCheck,AlertTriangle,Plus,Trash2,RefreshCw,FileText} from 'lucide-react';
 import {useApp} from '../../context/AppContext';
+import {usePejabatSettings,signerForFunding} from '../../context/PejabatSettingsContext';
 import {parseReceiptText,type ImportedRow} from '../../utils/receiptExtractor';
 import type {SumberDana,KuitansiType} from '../../types';
 
@@ -10,7 +11,8 @@ const fileTypes=['image/png','image/jpeg','image/webp','application/pdf'];
 const maxBytes=12*1024*1024;
 
 export const KuitansiExtractorView:React.FC<{fixedType?:KuitansiType}>=({fixedType})=>{
- const {currentRole,currentUser,addTransaksi,setActiveView,visibleTransaksi}=useApp();
+ const {currentRole,addTransaksi,setActiveView,visibleTransaksi}=useApp();
+ const {value:pejabat,ready:pejabatReady,error:pejabatError}=usePejabatSettings();
  const frame=useRef<HTMLIFrameElement>(null);
  const pending=useRef<{nonce:string;file:File}|null>(null);
  const ready=useRef(false);
@@ -23,16 +25,13 @@ export const KuitansiExtractorView:React.FC<{fixedType?:KuitansiType}>=({fixedTy
  const [rows,setRows]=useState<ImportedRow[]>([]);
  const [date,setDate]=useState('');
  const [source,setSource]=useState<SumberDana>(currentRole==='bpp_pnbp'?'PNBP':'RM');
+ const signer=signerForFunding(pejabat,source);
  const [type,setType]=useState<KuitansiType>(fixedType||'jasa_profesi');
  const [account,setAccount]=useState('');
  const [accountName,setAccountName]=useState('');
  const [activity,setActivity]=useState('');
  const [description,setDescription]=useState('');
  const [sourceNumber,setSourceNumber]=useState('');
- const [ppkName,setPpkName]=useState('');
- const [ppkNip,setPpkNip]=useState('');
- const [treasurerName,setTreasurerName]=useState(currentRole==='bendahara'?currentUser.nama:'');
- const [treasurerNip,setTreasurerNip]=useState(currentRole==='bendahara'?currentUser.nip:'');
  const [confirmed,setConfirmed]=useState(false);
  const [saving,setSaving]=useState(false);
  const [rawOpen,setRawOpen]=useState(false);
@@ -108,6 +107,7 @@ export const KuitansiExtractorView:React.FC<{fixedType?:KuitansiType}>=({fixedTy
  const save=async()=>{
   setError('');
   if(isBusy||saving)return;
+  if(!pejabatReady){setError("Konfigurasi pejabat belum tersedia. Buka Administrasi.");return;}
   if(!confirmed){setError('Centang konfirmasi hasil pemeriksaan sebelum menyimpan.');return;}
   if(!/^\d{6}$/.test(account)){setError('Kode akun harus 6 digit sesuai dokumen anggaran.');return;}
   if(!/^20\d{2}-\d{2}-\d{2}$/.test(date)){setError('Tanggal kuitansi wajib valid (YYYY-MM-DD).');return;}
@@ -142,7 +142,7 @@ export const KuitansiExtractorView:React.FC<{fixedType?:KuitansiType}>=({fixedTy
     ringkasanPenerima:penerimaList.length===1?penerimaList[0].nama:penerimaList[0].nama+' dkk.',
     penerimaList,totalBruto:sum.bruto,totalPPN:sum.ppn,totalPPh:sum.pph,totalNetto:sum.netto,
     status:'Draft',sudahSakti:false,
-    ppkNama:ppkName.trim(),ppkNip:ppkNip.trim(),bendaharaNama:treasurerName.trim(),bendaharaNip:treasurerNip.trim()
+    ppkNama:pejabat.ppkNama.trim(),ppkNip:pejabat.ppkNip.trim(),bendaharaNama:signer.nama.trim(),bendaharaNip:signer.nip.trim()
    });
    setActiveView('transaksi');
   }catch(e){setError(e instanceof Error?e.message:'Gagal menyimpan Draft. Periksa kembali data.');}
@@ -164,6 +164,7 @@ export const KuitansiExtractorView:React.FC<{fixedType?:KuitansiType}>=({fixedTy
    <p role="status" className="mt-2 text-xs text-slate-600">{status}{isBusy?' (pemrosesan lokal sedang berjalan)':''}</p>
    <p className="mt-1 text-xs text-slate-500">Tidak membutuhkan API AI berbayar. Mesin OCR/PDF diunduh dari CDN publik saat digunakan. Berkas asli diproses di browser dan tidak diunggah ke Supabase; hanya data yang Anda setujui disimpan sebagai transaksi.</p>
   </div>
+  {!pejabatReady&&<p role="alert" className="bg-amber-50 border border-amber-200 rounded p-3 text-xs text-amber-900">Konfigurasi pejabat belum tersedia. {pejabatError}</p>}
   {error&&<p role="alert" className="bg-red-50 border border-red-300 rounded-lg p-3 text-sm text-red-800">{error}</p>}
   {imported&&<div className="space-y-4">
    {warnings.length>0&&<section className="bg-amber-50 border border-amber-200 rounded-xl p-4">
@@ -191,10 +192,10 @@ export const KuitansiExtractorView:React.FC<{fixedType?:KuitansiType}>=({fixedTy
      <label className="text-xs font-semibold">Nama Akun<input className={input} value={accountName} onChange={e=>{setAccountName(e.target.value);setConfirmed(false);}}/></label>
      <label className="text-xs font-semibold">Kegiatan<input className={input} value={activity} onChange={e=>{setActivity(e.target.value);setConfirmed(false);}} placeholder="Nama kegiatan sesuai kuitansi"/></label>
      <label className="text-xs font-semibold md:col-span-3">Uraian Dokumen<input className={input} value={description} onChange={e=>{setDescription(e.target.value);setConfirmed(false);}}/></label>
-     <label className="text-xs font-semibold">Nama PPK<input className={input} value={ppkName} onChange={e=>{setPpkName(e.target.value);setConfirmed(false);}}/></label>
-     <label className="text-xs font-semibold">NIP PPK<input className={input} value={ppkNip} onChange={e=>{setPpkNip(e.target.value);setConfirmed(false);}}/></label>
-     <label className="text-xs font-semibold">Nama Bendahara<input className={input} value={treasurerName} onChange={e=>{setTreasurerName(e.target.value);setConfirmed(false);}}/></label>
-     <label className="text-xs font-semibold">NIP Bendahara<input className={input} value={treasurerNip} onChange={e=>{setTreasurerNip(e.target.value);setConfirmed(false);}}/></label>
+     <label className="text-xs font-semibold">Nama PPK (Administrasi)<input className={input} readOnly value={pejabat.ppkNama}/></label>
+     <label className="text-xs font-semibold">NIP PPK (Administrasi)<input className={input} readOnly value={pejabat.ppkNip}/></label>
+     <label className="text-xs font-semibold">Nama BPP (Administrasi)<input className={input} readOnly value={signer.nama}/></label>
+     <label className="text-xs font-semibold">NIP BPP (Administrasi)<input className={input} readOnly value={signer.nip}/></label>
     </div>
    </section>
    <section className="bg-white border rounded-xl p-4">
