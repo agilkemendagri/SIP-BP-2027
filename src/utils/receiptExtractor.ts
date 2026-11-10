@@ -215,8 +215,11 @@ function parseTravelReceipt(input:string,lines:string[]):ParsedReceipt|null {
  }
  // In a two-column signatory table, the recipient is in the right column,
  // not the left-column Bendahara Pengeluaran.
- const receivedIndex=lines.findIndex(s=>/\bYang\s+Menerima\b/i.test(s));
- const signArea=receivedIndex>=0?lines.slice(receivedIndex+1,receivedIndex+9):[];
+ // Preserve original horizontal spacing: PDF tables use wide gaps to separate
+ // Bendahara (left) from recipient (right). Normalized lines would lose this.
+ const rawLines=input.split(/\n+/).map(line=>line.trim()).filter(Boolean);
+ const receivedIndex=rawLines.findIndex(s=>/\bYang\s+Menerima\b/i.test(s));
+ const signArea=receivedIndex>=0?rawLines.slice(receivedIndex+1,receivedIndex+9):[];
  const signNames=signArea.map(line=>line.split(/\s{3,}/).map(v=>v.trim()).filter(Boolean))
   .find(parts=>parts.length>=2 && /[A-Za-z]{3,}\s+[A-Za-z]{3,}/.test(parts.at(-1)||'')
    && !/^(?:NIP|PERHITUNGAN|Sisa|Jumlah|Ditetapkan|Yang)/i.test(parts.at(-1)||''));
