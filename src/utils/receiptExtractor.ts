@@ -8,7 +8,7 @@ export type ImportedRow={
 export type ParsedReceipt={
  rows:ImportedRow[];tanggalKuitansi:string;kodeAkun:string;kegiatan:string;
  nomorAsal:string;totalBruto:number|null;totalPPN:number|null;totalPPh:number|null;totalNetto:number|null;
- warnings:string[];tanggalSppd?:string;
+ warnings:string[];tanggalSppd?:string;telahDibayarSemula?:number;sisaKurangLebih?:number;
 };
 const months:Record<string,string>={
  januari:'01',februari:'02',maret:'03',april:'04',mei:'05',juni:'06',juli:'07',agustus:'08',
