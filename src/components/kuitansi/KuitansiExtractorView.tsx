@@ -37,6 +37,8 @@ export const KuitansiExtractorView:React.FC<{fixedType?:KuitansiType;onApplyToFo
  const [description,setDescription]=useState('');
  const [sourceNumber,setSourceNumber]=useState('');
  const [tanggalSppd,setTanggalSppd]=useState('');
+ const [paidBefore,setPaidBefore]=useState<number|undefined>(undefined);
+ const [balance,setBalance]=useState<number|undefined>(undefined);
  const [confirmed,setConfirmed]=useState(false);
  const [saving,setSaving]=useState(false);
  const [rawOpen,setRawOpen]=useState(false);
@@ -58,6 +60,8 @@ export const KuitansiExtractorView:React.FC<{fixedType?:KuitansiType;onApplyToFo
   setActivity(parsed.kegiatan||parsed.rows.map(r=>r.uraianItem).filter(Boolean).join('; '));
   setSourceNumber(parsed.nomorAsal);
   setTanggalSppd(parsed.tanggalSppd||'');
+  setPaidBefore(parsed.telahDibayarSemula);
+  setBalance(parsed.sisaKurangLebih);
   setExpectedTotals({bruto:parsed.totalBruto,netto:parsed.totalNetto});
   setDescription(parsed.rows[0]?.uraianItem||'');
   setConfirmed(false);
@@ -201,7 +205,7 @@ export const KuitansiExtractorView:React.FC<{fixedType?:KuitansiType;onApplyToFo
       if(!rows.length)return;
       if(expectedTotals.bruto!==null&&Math.abs(expectedTotals.bruto-sum.bruto)>1){setError('Total rincian tidak sesuai dokumen sumber. Koreksi sebelum menerapkan.');return;}
       if(!window.confirm('Terapkan '+rows.length+' rincian ke formulir manual? Periksa kembali seluruh kolom dan jangan langsung finalisasi.'))return;
-      onApplyToForm({rows,date,account,activity,description,sourceNumber,tanggalSppd});
+      onApplyToForm({rows,date,account,activity,description,sourceNumber,tanggalSppd,telahDibayarSemula:paidBefore,sisaKurangLebih:balance});
      }} className="w-full bg-blue-700 text-white font-semibold px-4 py-3 rounded-lg disabled:opacity-50">
        Terapkan Hasil Ekstraksi ke Formulir Kuitansi
      </button>}
