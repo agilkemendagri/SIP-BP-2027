@@ -1,3 +1,4 @@
+import {parseWithinCityReceipt} from './localTravelExtractor';
 /** Rule-based preliminary extraction. Every financial field must be confirmed by an operator. */
 export type ImportedRow={
  id:string;
@@ -253,6 +254,8 @@ export function parseReceiptText(text:string):ParsedReceipt{
  const input=text.replace(/\r/g,'').replace(/[\u00a0\u2007]/g,' ').trim();
  const lines=input.split(/\n+/).map(s=>s.replace(/\s+/g,' ').trim()).filter(Boolean);
  const warnings:string[]=[];
+ const localTravel=parseWithinCityReceipt(input,lines);
+ if(localTravel)return localTravel;
  const travel=parseTravelReceipt(input,lines);
  if(travel)return travel;
  const individual=parseIndividualReceipt(input,lines);
