@@ -19,7 +19,7 @@ export const parseIdr=(s:string):number=>{
  const compact=/^\d{1,3}(?:[.,]\d{3})+$/.test(text)?text.replace(/[.,]/g,''):text.replace(/\./g,'').replace(',','.');
  const n=Number(compact);return Number.isFinite(n)?n:0;
 };
-const amountRe=/\\b(?:Rp\\.?\\s*)?(\\d{1,3}(?:[.,]\\d{3})+(?:,\\d{1,2})?|\\d{4,}(?:,\\d{1,2})?)\\b/gi;
+const amountRe=/\b(?:Rp\.?\s*)?(\d{1,3}(?:[.,]\d{3})+(?:,\d{1,2})?|\d{4,}(?:,\d{1,2})?)\b/gi;
 const moneyMatches=(line:string)=>[...line.matchAll(amountRe)].map(m=>({value:parseIdr(m[1]),index:m.index??0,raw:m[0]})).filter(x=>x.value>=1000);
 const today=()=>new Date().toLocaleDateString('en-CA',{timeZone:'Asia/Jakarta'});
 const findDate=(s:string):string=>{
