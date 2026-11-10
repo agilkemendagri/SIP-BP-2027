@@ -1,3 +1,4 @@
+import './professionReceiptParser.test';
 import assert from 'node:assert/strict';
 import {parseOutsideTravelReceipt,parseInsideTravelReceipt} from '../src/utils/travelReceiptParser';
 
