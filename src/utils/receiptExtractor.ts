@@ -1,7 +1,7 @@
 /** Rule-based preliminary extraction. Every financial field must be confirmed by an operator. */
 export type ImportedRow={
  id:string;
- nama:string;uraianItem:string;volume:number;satuan:string;tarifSatuan:number;
+ nama:string;nip?:string;uraianItem:string;volume:number;satuan:string;tarifSatuan:number;
  bruto:number;ppnNominal:number;pphNominal:number;netto:number;
 };
 export type ParsedReceipt={
@@ -229,7 +229,7 @@ function parseTravelReceipt(input:string,lines:string[]):ParsedReceipt|null {
  const recipientNip=nipMatches.at(-1)?.[1]||'';
  if(!recipient)warnings.push('Nama penerima perjalanan dinas belum terbaca dengan pasti; wajib dilengkapi.');
  if(!recipientNip)warnings.push('NIP penerima belum terbaca; periksa dan lengkapi bila tersedia.');
- for(const row of rows)row.nama=recipient;
+ for(const row of rows){row.nama=recipient;row.nip=recipientNip;}
  const totalLine=end>start?lines[end]:'';
  const total=moneyMatches(totalLine).at(-1)?.value??null;
  const rowTotal=rows.reduce((acc,row)=>acc+row.bruto,0);
