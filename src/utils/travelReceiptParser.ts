@@ -68,7 +68,8 @@ export function parseOutsideTravelReceipt(text:string):ParsedReceipt|null{
  const headerDate=getDate(lines.slice(0,top).join('\n'));
  if(headerDate&&receiptDate&&headerDate.slice(0,4)!==receiptDate.slice(0,4))warnings.push('Tahun tanggal SPPD ('+headerDate+') berbeda dari tanggal kuitansi ('+receiptDate+'); pastikan tanggal sumber benar.');
  if(!receiver)warnings.push('Nama penerima perjalanan tidak terbaca jelas; lengkapi sebelum menyimpan.');
- return finalize(input,rows,receiptDate,expected,warnings,nomor);
+ const parsed=finalize(input,rows,receiptDate,expected,warnings,nomor);
+ return {...parsed,tanggalSppd:headerDate};
 }
 export function parseInsideTravelReceipt(text:string):ParsedReceipt|null{
  const input=text.replace(/\r/g,'').replace(/[\u00a0\u2007]/g,' ');
