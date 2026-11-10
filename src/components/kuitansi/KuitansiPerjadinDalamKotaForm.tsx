@@ -5,6 +5,7 @@
 
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
+import {usePejabatSettings,signerForFunding} from '../../context/PejabatSettingsContext';
 import { SumberDana, PenerimaItem } from '../../types';
 import { formatRupiah } from '../../utils/formatters';
 import { Car, Save, CheckCircle2, ArrowLeft, Plus, Trash2, Users } from 'lucide-react';
@@ -26,6 +27,7 @@ interface RecipientRow {
 
 export const KuitansiPerjadinDalamKotaForm: React.FC = () => {
   const { currentRole, addTransaksi, setActiveView, showToast } = useApp();
+  const {value:pejabat,ready:pejabatReady}=usePejabatSettings();
 
   const defaultSumberDana: SumberDana = currentRole === 'bpp_pnbp' ? 'PNBP' : 'RM';
   const [sumberDana, setSumberDana] = useState<SumberDana>(defaultSumberDana);
@@ -116,6 +118,7 @@ export const KuitansiPerjadinDalamKotaForm: React.FC = () => {
   };
 
   const handleSubmit = async (targetStatus: 'Draft' | 'Final') => {
+    if(!pejabatReady){showToast('Konfigurasi pejabat belum tersedia. Buka Administrasi.','warning');return;}
     // Validate rows
     const hasEmptyName = recipients.some(r => !r.nama.trim());
     if (hasEmptyName || !kegiatan.trim() || totalBruto <= 0) {
@@ -164,10 +167,10 @@ export const KuitansiPerjadinDalamKotaForm: React.FC = () => {
       totalNetto,
       status: targetStatus,
       sudahSakti: false,
-      ppkNama: '',
-      ppkNip: '',
-      bendaharaNama: '',
-      bendaharaNip: '',
+      ppkNama: pejabat.ppkNama,
+      ppkNip: pejabat.ppkNip,
+      bendaharaNama: signerForFunding(pejabat,sumberDana).nama,
+      bendaharaNip: signerForFunding(pejabat,sumberDana).nip,
       suratTugasNomor,
       tanggalTugas,
       kotaAsal,
