@@ -3,9 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import {PerjadinReceiptPreview} from './PerjadinReceiptPreview';
+import type {ExtractedReceiptData} from './KuitansiWithExtractor';
 import {usePejabatSettings,signerForFunding} from '../../context/PejabatSettingsContext';
 import { SumberDana, PenerimaItem } from '../../types';
 import { formatRupiah } from '../../utils/formatters';
@@ -20,7 +21,7 @@ interface BiayaItem {
   tarifSatuan: number;
 }
 
-export const KuitansiPerjadinLuarKotaForm: React.FC = () => {
+export const KuitansiPerjadinLuarKotaForm: React.FC<{extracted?:ExtractedReceiptData}> = ({extracted}) => {
   const { currentRole, addTransaksi, setActiveView, showToast } = useApp();
   const [previewOpen,setPreviewOpen]=useState(false);
   const {value:pejabat,ready:pejabatReady}=usePejabatSettings();
@@ -57,6 +58,17 @@ export const KuitansiPerjadinLuarKotaForm: React.FC = () => {
     {id:"1",kategori:"Uang Harian",uraian:"",volume:1,satuan:"Hari",tarifSatuan:0}
   ]);
 
+  useEffect(()=>{
+   if(!extracted?.rows.length)return;
+   const r=extracted.rows;
+   if(extracted.date)setTanggalKuitansi(extracted.date);
+   if(extracted.account)setKodeAkun(extracted.account);
+   setNamaPelaksana(r[0].nama);
+   setBiayaItems(r.map((x,i)=>({id:x.id||'ext-'+i,kategori:'Lainnya',uraian:x.uraianItem,volume:x.volume,satuan:x.satuan||'Hari',tarifSatuan:x.tarifSatuan})));
+   setPphNominal(r.reduce((n,x)=>n+x.pphNominal,0));
+   setPpnNominal(r.reduce((n,x)=>n+x.ppnNominal,0));
+   showToast('Data ekstraktor dimasukkan ke formulir Perjadin Luar Kota. Periksa seluruh rincian.','info');
+  },[extracted]);
   // Pajak (Bisa disimulasikan jika dipungut pajak hotel/tiket)
   const [pphNominal, setPphNominal] = useState<number>(0);
   const [ppnNominal, setPpnNominal] = useState<number>(0);
