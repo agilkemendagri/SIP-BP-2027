@@ -244,7 +244,7 @@ function parseTravelReceipt(input:string,lines:string[]):ParsedReceipt|null {
  const isOutOfTown=/\b[A-Z]{3}\s*[-–]\s*[A-Z]{3}\b/i.test(input)||/\b(?:Tiket\s+Pesawat|Luar\s+Kota)\b/i.test(input);
  return {rows,tanggalKuitansi:receiptDate,kodeAkun:'',kegiatan:'Perjalanan dinas',
   nomorAsal:documentNumber,documentKind:'travel',suggestedSource:sourceHint(input),
-  suggestedType:isOutOfTown?'perjadin_luar_kota':undefined,recipientNip,
+  suggestedType:isOutOfTown?'perjadin_luar_kota':/\bDalam\s+Kota\b/i.test(input)?'perjadin_dalam_kota':undefined,recipientNip,
   documentDate,signatureDate,
   totalBruto:total,totalPPN:0,totalPPh:0,totalNetto:total,warnings};
 }
