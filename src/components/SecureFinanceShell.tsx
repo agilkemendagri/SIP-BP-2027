@@ -44,6 +44,9 @@ function Content(){
     {activeView==="rekap"&&<RekapView/>}
     {activeView==="pengguna"&&<PenggunaView/>}
     {activeView==="ekstraktor"&&<KuitansiExtractorView/>}
+    {activeView==="ekstraktor_profesi"&&<KuitansiExtractorView key="profesi" fixedType="jasa_profesi"/>}
+    {activeView==="ekstraktor_luar_kota"&&<KuitansiExtractorView key="luar" fixedType="perjadin_luar_kota"/>}
+    {activeView==="ekstraktor_dalam_kota"&&<KuitansiExtractorView key="dalam" fixedType="perjadin_dalam_kota"/>}
    </main>
    <footer className="text-xs text-slate-500 border-t border-slate-200 py-4 px-6 text-center">
     SIP-BP · BBPKA PDN IV · {isProductionEnvironment ? "Sistem Bendahara Pengeluaran" : "Lingkungan pengembangan · Bukan untuk data keuangan riil"}
