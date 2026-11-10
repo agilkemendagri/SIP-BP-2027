@@ -105,7 +105,7 @@ function collectivePipeOcr(text:string):{rows:ImportedRow[];warnings:string[]}|n
  if(!indices.length)return null;
  const warnings:string[]=[];
  const rows:ImportedRow[]=[];
- const amounts=(s:string)=>Number(s.replace(/[^\d]/g,''));
+ const amounts=(s:string)=>{const m=s.match(/\d{1,4}(?:[., ]\d{3})+|\d+/);return m?Number(m[0].replace(/[^\d]/g,'')):0;};
  const recognizedAmount=(s:string)=>/^\s*(?:Rp\.?\s*)?\d{1,3}(?:[., ]\d{3})*\s*$/.test(s);
  for(let i=0;i<indices.length;i++){
   const pos=indices[i],end=indices[i+1]??lines.length;
@@ -121,8 +121,9 @@ function collectivePipeOcr(text:string):{rows:ImportedRow[];warnings:string[]}|n
   const nameHead=matchHonor?prefixedName.slice(0,matchHonor.index).trim():prefixedName.replace(/\bHonor.*$/i,'').trim();
   const descHead=matchHonor?prefixedName.slice(matchHonor.index).trim():'';
   const nameTail=recipientFragment.replace(/\b(?:Honor|Pembinaan|tanggal|April|Mei|Juni|20\d{2})\b.*$/i,'').trim();
-  const name=compact((nameHead+' '+nameTail).replace(/[|]/g,'').replace(/\s+\d\.\s*$/,' S.')).replace(/[, ]+$/,'');
+  const name=compact((nameHead+' '+nameTail).replace(/[|]/g,'').replace(/\s+\d\.\s*$/,' 5.')).replace(/[, ]+$/,'');
   const usableName=!/\b(?:April|Mei|tanggal|Honor|Latsar)\b/i.test(name)&&name.length>4;
+  if(/\b5\./.test(name))warnings.push('Baris '+no+': huruf gelar terbaca sebagai angka 5 oleh OCR; periksa dan koreksi nama penerima sebelum simpan.');
   // Extract the money fields from right to left, since OCR can merge JP and tariff.
   const right=fields.slice(3);
   const numeric=right.map(x=>({raw:x,val:amounts(x)})).filter(x=>x.val>0);
