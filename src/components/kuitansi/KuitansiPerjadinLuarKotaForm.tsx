@@ -308,7 +308,7 @@ export const KuitansiPerjadinLuarKotaForm: React.FC<{extracted?:ExtractedReceipt
 
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Jabatan Pelaksana
+                Jabatan Pelaksana (opsional)
               </label>
               <input
                 type="text"
@@ -320,7 +320,7 @@ export const KuitansiPerjadinLuarKotaForm: React.FC<{extracted?:ExtractedReceipt
 
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Rekening Penyaluran
+                Rekening Penyaluran (opsional)
               </label>
               <input
                 type="text"
