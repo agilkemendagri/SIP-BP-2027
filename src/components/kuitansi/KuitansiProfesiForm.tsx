@@ -188,7 +188,7 @@ export const KuitansiProfesiForm: React.FC<{extracted?:ExtractedReceiptData}> = 
     if(extracted.account)setKodeAkun(extracted.account);
     const rows=extracted.rows;
     const distinct=new Set(rows.map(r=>r.nama.trim().toLowerCase()));
-    if(distinct.size===1){
+    if(!extracted.isCollective && distinct.size===1){
       setJenisDokumen('INDIVIDUAL');
       setNamaPenerima(rows[0].nama);
       setSesiIndividual(rows.map((r,i)=>({id:r.id||'ext-'+i,uraianSesi:r.uraianItem,volume:r.volume,satuan:r.satuan||'JP',tarifSatuan:r.tarifSatuan})));
