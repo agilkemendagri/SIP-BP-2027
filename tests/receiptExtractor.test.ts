@@ -153,6 +153,70 @@ Makassar, 6 November 2026
   const found=parseReceiptText("NO PERINCIAN BIAYA\n1 Uang harian Rp 1,000,000\nJUMLAH Rp 1,000,000");
   expect(found.documentKind).not.toBe("travel"); // missing SPPD identifier
  });
+
+ it("mengurai Daftar Penerimaan perjadin dalam kota 3 pegawai tanpa mengubah ke luar kota",()=>{
+  const input=[
+   "DAFTAR PENERIMAAN",
+   "Perjalanan dinas dalam kota dalam rangka koordinasi proses permohonan penambahan pagu anggaran PNBP selama",
+   "1 hari pada tanggal 15 Oktober 2026 di Kanwil DJPb Sulsel, GKN, Makassar",
+   "TANGGAL",
+   "NO NAMA PELAKSANAAN OH Hari Jumlah TANDA TANGAN",
+   "1 Pegawai Contoh Satu, S.Sos.,          15 Oktober",
+   "                                           170,000     1      170,000",
+   "   M.M.                                    2026",
+   "2 Pegawai Contoh Dua,                  15 Oktober",
+   "                                           170,000     1      170,000",
+   "   S.STP., M.Si.                           2026",
+   "3 Pegawai Contoh Tiga, S.IP., M.Si.     170,000     1      170,000",
+   "                                        15 Oktober",
+   "                                           2026",
+   "JUMLAH                               510,000",
+   "Makassar, 18 Oktober 2026",
+   "Setuju Dibayar",
+   "Pejabat Pembuat Komitmen         Bendahara Pengeluaran Pembantu",
+   "PPSDM Kemendagri Regional Makassar     PNBP"
+  ].join("\n");
+  const parsed=parseReceiptText(input);
+  expect(parsed.documentKind).toBe("travel");
+  expect(parsed.suggestedType).toBe("perjadin_dalam_kota");
+  expect(parsed.suggestedSource).toBe("PNBP");
+  expect(parsed.rows).toHaveLength(3);
+  expect(parsed.rows.map(x=>x.nama)).toEqual([
+   "Pegawai Contoh Satu, S.Sos., M.M.",
+   "Pegawai Contoh Dua, S.STP., M.Si.",
+   "Pegawai Contoh Tiga, S.IP., M.Si."
+  ]);
+  expect(parsed.rows.map(x=>x.bruto)).toEqual([170000,170000,170000]);
+  expect(parsed.rows.map(x=>x.volume)).toEqual([1,1,1]);
+  expect(parsed.rows.map(x=>x.tarifSatuan)).toEqual([170000,170000,170000]);
+  expect(parsed.rows.every(x=>x.satuan==="Hari")).toBe(true);
+  expect(parsed.documentDate).toBe("2026-10-15");
+  expect(parsed.signatureDate).toBe("2026-10-18");
+  expect(parsed.tanggalKuitansi).toBe("2026-10-18");
+  expect(parsed.totalBruto).toBe(510000);
+  expect(parsed.totalNetto).toBe(510000);
+  expect(parsed.kodeAkun).toBe("");
+  expect(parsed.warnings.some(x=>x.includes("Pajak tidak dirinci"))).toBe(true);
+  expect(parsed.kegiatan).toContain("koordinasi proses permohonan penambahan pagu anggaran");
+ });
+ it("memperingatkan ketidaksesuaian total daftar penerimaan dalam kota",()=>{
+  const input=[
+    "DAFTAR PENERIMAAN",
+    "Perjalanan dinas dalam kota dalam rangka rapat pada tanggal 15 Oktober 2026",
+    "TANGGAL",
+    "NO NAMA PELAKSANAAN OH Hari Jumlah",
+    "1 Pegawai Uji Satu 15 Oktober 2026 170,000 1 170,000",
+    "JUMLAH 200,000",
+    "Makassar, 18 Oktober 2026"
+  ].join("\n");
+  const p=parseReceiptText(input);
+  expect(p.suggestedType).toBe("perjadin_dalam_kota");
+  expect(p.warnings.some(x=>x.includes("berbeda dari jumlah rincian"))).toBe(true);
+ });
+ it("tidak mengklasifikasi daftar honorarium non-perjadin sebagai perjalanan dalam kota",()=>{
+  const input="DAFTAR PENERIMAAN\nHonorarium pegawai\n1 Penerima Uji 170,000 1 170,000\nJUMLAH 170,000";
+  expect(parseReceiptText(input).suggestedType).not.toBe("perjadin_dalam_kota");
+ });
  it("PDF gambar diproses terisolasi dan tidak mengunggah berkas ke server keuangan",()=>{
   const ocr=readFileSync("public/ocr-engine.html","utf8");
   const view=readFileSync("src/components/kuitansi/KuitansiExtractorView.tsx","utf8");
