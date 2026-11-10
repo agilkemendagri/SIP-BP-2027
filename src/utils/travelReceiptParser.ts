@@ -77,8 +77,8 @@ export function parseInsideTravelReceipt(text:string):ParsedReceipt|null{
  const head=lines.findIndex(x=>/NO\s+NAMA/i.test(x));
  const totalIndex=lines.findIndex((x,i)=>i>head&&/^\s*JUMLAH\b/i.test(x));
  if(head<0||totalIndex<0)return null;
- const nameEnd=Math.max(30,lines[head].indexOf('PELAKSANAAN')>0?lines[head].indexOf('PELAKSANAAN')-8:42);
- const nameStart=Math.max(0,lines[head].indexOf('NAMA')-6);
+ const nameEnd=40;
+ const nameStart=0;
  const section=lines.slice(head+1,totalIndex);
  const anchors:number[]=[];
  for(let i=0;i<section.length;i++){
@@ -109,7 +109,9 @@ export function parseInsideTravelReceipt(text:string):ParsedReceipt|null{
   const middle=line.slice(numeric.at(-2)!.index+numeric.at(-2)!.text.length,numeric.at(-1)!.index);
   const days=Number(middle.match(/\b(\d{1,2})\b/)?.[1]||1);
   const rawDate=dates.join(' ');
-  const rowDate=getDate(rawDate);
+  const day=rawDate.match(/\b(\d{1,2})\s+(Januari|Februari|Maret|April|Mei|Juni|Juli|Agustus|September|Oktober|November|Desember)\b/i);
+  const year=rawDate.match(/\b(20\d{2})\b/);
+  const rowDate=day&&year?getDate(day[1]+' '+day[2]+' '+year[1]):getDate(input.slice(0,input.indexOf('TANGGAL')));
   rows.push(makeRow(k+1,names.join(' '),'Perjalanan dinas dalam kota',days,'Hari',rate,total,{tanggalPelaksanaan:rowDate}));
  }
  const expected=tokenMoney(lines[totalIndex]).at(-1)?.value??null;
