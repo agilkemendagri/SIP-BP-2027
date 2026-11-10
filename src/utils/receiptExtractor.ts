@@ -217,13 +217,10 @@ function parseTravelReceipt(input:string,lines:string[]):ParsedReceipt|null {
  // not the left-column Bendahara Pengeluaran.
  const receivedIndex=lines.findIndex(s=>/\bYang\s+Menerima\b/i.test(s));
  const signArea=receivedIndex>=0?lines.slice(receivedIndex+1,receivedIndex+9):[];
- const nameLine=signArea.find(s=>/\b[A-Z][a-z]+\s+[A-Z][a-z]+\b/.test(s)
-   && !/\b(?:NIP|PERHITUNGAN|SPPD|Bendahara|Pejabat)\b/i.test(s));
- let recipient='';
- if(nameLine){
-  const splits=nameLine.split(/\s{3,}/).map(v=>v.trim()).filter(Boolean);
-  recipient=(splits.length>1?(splits.at(-1)||nameLine):nameLine).trim();
- }
+ const signNames=signArea.map(line=>line.split(/\s{3,}/).map(v=>v.trim()).filter(Boolean))
+  .find(parts=>parts.length>=2 && /[A-Za-z]{3,}\s+[A-Za-z]{3,}/.test(parts.at(-1)||'')
+   && !/^(?:NIP|PERHITUNGAN|Sisa|Jumlah|Ditetapkan|Yang)/i.test(parts.at(-1)||''));
+ const recipient=signNames?.at(-1)||'';
  const recipientNipLine=signArea.find(s=>/\bNIP\.?\s*[\d\s]{18,}/i.test(s))||'';
  const nipMatches=[...recipientNipLine.matchAll(/NIP\.?\s*(\d{18})/gi)];
  const recipientNip=nipMatches.at(-1)?.[1]||'';
