@@ -85,6 +85,74 @@ Makassar, 6 November 2026
   expect(parseIdr("950.000,50")).toBe(950000.5);
   expect(parseIdr("1,000,000")).toBe(1000000);
  });
+
+ it("mengurai enam rincian SPPD, 30% penginapan, dan mendeteksi selisih tahun tanggal",()=>{
+  // Data contoh dianonimkan agar identitas pegawai tidak masuk repositori publik.
+  const sample=[
+   "Lampiran SPPD Nomor : 0741/SPD/BBPKAPDN-IV/2026",
+   "Tanggal : 14 Oktober 2026",
+   "NO PERINCIAN BIAYA JUMLAH KETERANGAN",
+   "1 Uang harian 3 Hari x @.Rp. 530,000 Rp 1,590,000",
+   "2 Biaya Penginapan 1 Hari x @.Rp. 1,380,363 Rp 1,380,363",
+   "3 Biaya Penginapan 1 Hari x @.Rp. 2,084,000 30% Rp 625,200",
+   "4 Biaya Tiket Pesawat CGK-UPG Rp 2,851,120",
+   "5 Uang Representatif 3 Hari x @.Rp. 150,000 Rp 450,000",
+   "6 Biaya Transport Lumpsum Rp 431,000 CGK-UPG",
+   "JUMLAH Rp. 7,327,683",
+   "Makassar, 21 Oktober 2025",
+   "Telah dibayar sejumlah Telah menerima jumlah uang sebesar",
+   "Rp 7,327,683 Rp7,327,683",
+   "Bendahara Pengeluaran Yang Menerima",
+   "Bendahara Uji, S.E.                         Pegawai Penerima, S.Sos., M.AP.",
+   "NIP. 111111111111111111                      NIP.222222222222222222",
+   "PERHITUNGAN SPPD RAMPUNG",
+   "Ditetapkan sejumlah Rp. 7,327,683",
+   "Yang telah dibayar semula Rp. 7,327,683",
+   "Sisa Kurang/Lebih Rp. -"
+  ].join("\n");
+  const parsed=parseReceiptText(sample);
+  expect(parsed.documentKind).toBe("travel");
+  expect(parsed.suggestedType).toBe("perjadin_luar_kota");
+  expect(parsed.rows).toHaveLength(6);
+  expect(parsed.rows.map(r=>r.bruto)).toEqual([1590000,1380363,625200,2851120,450000,431000]);
+  expect(parsed.rows.reduce((n,r)=>n+r.bruto,0)).toBe(7327683);
+  expect(parsed.rows[2].uraianItem).toContain("30% dari tarif 2.084.000");
+  expect(parsed.rows[2].tarifSatuan).toBe(625200); // actual paid amount, not 2,084,000
+  expect(parsed.rows[0].volume).toBe(3);
+  expect(parsed.rows[0].tarifSatuan).toBe(530000);
+  expect(parsed.rows[0].satuan.toLowerCase()).toBe("hari");
+  expect(parsed.rows[0].nama).toContain("Pegawai Penerima");
+  expect(parsed.recipientNip).toBe("222222222222222222");
+  expect(parsed.rows[0].nip).toBe(parsed.recipientNip);
+  expect(parsed.nomorAsal).toBe("0741/SPD/BBPKAPDN-IV/2026");
+  expect(parsed.documentDate).toBe("2026-10-14");
+  expect(parsed.signatureDate).toBe("2025-10-21");
+  expect(parsed.tanggalKuitansi).toBe(""); // do not silently choose conflicting year
+  expect(parsed.totalBruto).toBe(7327683);
+  expect(parsed.totalNetto).toBe(7327683);
+  expect(parsed.warnings.some(s=>s.includes("PERBEDAAN TAHUN"))).toBe(true);
+  expect(parsed.kodeAkun).toBe("");
+ });
+ it("menolak klaim jumlah SPPD yang tidak sesuai dan menampilkan warning",()=>{
+  const sample=[
+   "Lampiran SPPD Nomor : 111/SPD/UJI/2026",
+   "Tanggal : 14 Oktober 2026",
+   "NO PERINCIAN BIAYA JUMLAH KETERANGAN",
+   "1 Uang harian 3 Hari x @.Rp. 530,000 Rp 1,590,000",
+   "JUMLAH Rp. 1,000,000",
+   "Makassar, 21 Oktober 2026",
+   "Bendahara Pengeluaran Yang Menerima",
+   "Bendahara Uji                    Pegawai Uji"
+  ].join("\n");
+  const parsed=parseReceiptText(sample);
+  expect(parsed.documentKind).toBe("travel");
+  expect(parsed.rows).toHaveLength(1);
+  expect(parsed.warnings.some(s=>s.includes("berbeda dengan penjumlahan"))).toBe(true);
+ });
+ it("tidak menyamakan SPPD dengan kolektif honorarium",()=>{
+  const found=parseReceiptText("NO PERINCIAN BIAYA\n1 Uang harian Rp 1,000,000\nJUMLAH Rp 1,000,000");
+  expect(found.documentKind).not.toBe("travel"); // missing SPPD identifier
+ });
  it("PDF gambar diproses terisolasi dan tidak mengunggah berkas ke server keuangan",()=>{
   const ocr=readFileSync("public/ocr-engine.html","utf8");
   const view=readFileSync("src/components/kuitansi/KuitansiExtractorView.tsx","utf8");
