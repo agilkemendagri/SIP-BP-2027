@@ -49,46 +49,73 @@ function collectiveLayout(text:string):ImportedRow[]{
  }
  return records;
 }
+
+/**
+ * Parse scanned collective receipts in reading order. Fixed-column slicing alone
+ * is unsafe: OCR joins neighboring table cells and can place dates in Nama.
+ */
 function collectiveReadingOrder(text:string):ImportedRow[]{
- const between=text.split(/\r?\n/);
- const tableStart=between.findIndex(x=>/\bNo\b.*\bNama\b.*\bUntuk Pembayaran\b.*\bJP\b/i.test(x));
- const tableEnd=between.findIndex((x,i)=>i>tableStart&&/^\s*JUMLAH\b/i.test(x));
+ const lines=text.split(/\r?\n/);
+ const tableStart=lines.findIndex(x=>/\bNo\b.*\bNama\b.*\bUntuk Pembayaran\b.*\bJP\b/i.test(x.replace(/\s+/g,' ')));
+ const tableEnd=lines.findIndex((x,i)=>i>tableStart&&/^\s*JUMLAH\b/i.test(x));
  if(tableStart<0||tableEnd<0)return [];
- const body=between.slice(tableStart+1,tableEnd).map(compact).filter(Boolean);
- const markers:number[]=[];
- for(let i=0,expected=1;i<body.length;i++){
-  const m=/^(\d{1,2})(?:\s+|$)/.exec(body[i]);
-  if(m&&Number(m[1])===expected && !moneyLine.test(body[i]) && !/^\d+\.\s*\.{2}/.test(body[i])){markers.push(i);expected++;}
+ const body=lines.slice(tableStart+1,tableEnd).map(compact).filter(Boolean);
+ const starts:number[]=[];
+ let expected=1;
+ for(let i=0;i<body.length;i++){
+  // Number must be at the start of a row, not a date/quantity within a cell.
+  const match=/^(\d{1,2})(?:[.)]?\s+|[.)]$)/.exec(body[i]);
+  if(match&&Number(match[1])===expected&&!/^\d+\.\s*\.{2,}/.test(body[i])){
+   starts.push(i);expected++;
+  }
  }
- if(markers.length===0)return [];
+ if(!starts.length)return [];
  const results:ImportedRow[]=[];
- for(let k=0;k<markers.length;k++){
-  const segment=body.slice(markers[k],markers[k+1]??body.length).join(' ');
-  const extracted=moneyLine.exec(segment);
-  if(!extracted)continue;
-  const before=segment.slice(0,extracted.index).replace(/^\d{1,2}\s*/, '');
-  const separator=/\bHonor(?:arium)?\b/i.exec(before);
+ for(let k=0;k<starts.length;k++){
+  const group=body.slice(starts[k],starts[k+1]??body.length);
+  const segment=group.join(' ');
+  const matched=moneyLine.exec(segment);
+  if(!matched)continue;
+  const quantity=Number(matched[1]),tariff=money(matched[2]),gross=money(matched[3]),tax=money(matched[4]),net=money(matched[5]);
+  if(quantity<1||tariff*quantity!==gross||gross-tax!==net)continue;
+  const prefix=compact(segment.slice(0,matched.index).replace(/^\d{1,2}[.)]?\s*/, ''));
+  const separator=/\bHonor(?:arium)?\b/i.exec(prefix);
   if(!separator)continue;
-  const nama=before.slice(0,separator.index).trim(),uraian=before.slice(separator.index).trim();
-  if(!nama||!uraian)continue;
-  const m=extracted;
-  results.push(makeRow(k+1,nama,uraian,Number(m[1]),money(m[2]),money(m[3]),money(m[4]),money(m[5])));
+  const name=compact(prefix.slice(0,separator.index).replace(/[,;|\s]+$/,''));
+  const description=compact(prefix.slice(separator.index));
+  // Do not guess a name if dates or a payment phrase leaked into it.
+  if(!name||/\b(?:Honor|tanggal|Latsar|CPNS|April|Mei|Juni|November|20\d{2})\b/i.test(name)||!description)continue;
+  results.push(makeRow(k+1,name,description,quantity,tariff,gross,tax,net));
  }
  return results;
 }
+const reliableLayout=(rows:ImportedRow[])=>rows.length>0&&rows.every(r=>
+ r.nama.length>=3&&!/\b(?:Honor|Pembinaan|tanggal|Latsar|CPNS|April|Mei|Juni|November|20\d{2})\b/i.test(r.nama)
+ &&/^(?:Honor|Honorarium)\b/i.test(r.uraianItem)
+ &&r.volume*r.tarifSatuan===r.bruto&&r.bruto-r.pphNominal===r.netto
+);
 export function parseProfessionReceipt(text:string):ParsedReceipt|null{
  const input=text.replace(/[\u00a0\u2007]/g,' ');
  const isCollective=/\bNo\s+Nama\s+Untuk Pembayaran\s+JP\b/i.test(compact(input));
  const isIndividual=/Jumlah\s+honor\s*:/i.test(input);
  if(!isCollective&&!isIndividual)return null;
  const layout=isCollective?collectiveLayout(input):[];
- const rows=isIndividual?individual(input):layout.length&&layout.every(r=>r.nama&&r.uraianItem&&r.volume*r.tarifSatuan===r.bruto&&r.bruto-r.pphNominal===r.netto)?layout:collectiveReadingOrder(input);
+ const reading=isCollective?collectiveReadingOrder(input):[];
+ const layoutOk=reliableLayout(layout);
+ const readingOk=reliableLayout(reading);
+ // Prefer reading order when it contains at least as many complete rows.
+ const candidate=isIndividual?individual(input):readingOk&&(!layoutOk||reading.length>=layout.length)?reading:layoutOk?layout:[];
+ const rows=candidate;
  const totals=new RegExp('JUMLAH\\s+'+nominal+'\\s+'+nominal+'\\s+'+nominal,'i').exec(input);
  const totalBruto=isIndividual?rows[0]?.bruto??null:totals?money(totals[1]):null;
  const totalPPh=isIndividual?rows[0]?.pphNominal??null:totals?money(totals[2]):null;
  const totalNetto=isIndividual?rows[0]?.netto??null:totals?money(totals[3]):null;
  const warnings:string[]=[];
  if(!rows.length)warnings.push('Rincian jasa profesi tidak dapat dipastikan; perbaiki hasil OCR sebelum menyimpan.');
+ if(isCollective&&layout.length!==reading.length)
+   warnings.push('Hasil pembacaan tabel berbeda antarmetode. Pastikan seluruh baris tanda terima terdeteksi.');
+ if(isCollective && rows.length && rows.some(r=>r.nama.includes('|')||/\d{1,2}\s+(?:April|Mei|Juni)\b/i.test(r.nama)))
+   warnings.push('Sebagian uraian/tanggal terbaca sebagai nama. Periksa ulang baris terkait.');
  if(rows.some(r=>!r.nama||!r.uraianItem))warnings.push('Nama atau uraian rincian tidak lengkap.');
  if(rows.some(r=>r.volume*r.tarifSatuan!==r.bruto||r.bruto-r.pphNominal!==r.netto))warnings.push('Perhitungan nominal baris tidak cocok dengan dokumen.');
  if(totalBruto!==null&&rows.reduce((n,r)=>n+r.bruto,0)!==totalBruto)warnings.push('Total bruto berbeda dari penjumlahan rincian.');
