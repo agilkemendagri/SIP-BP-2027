@@ -25,6 +25,7 @@ interface RecipientRow {
   pphRate: number;
   rekening: string;
   bank: string;
+  tanggalPelaksanaan?:string;
 }
 
 export const KuitansiPerjadinDalamKotaForm: React.FC<{extracted?:ExtractedReceiptData}> = ({extracted}) => {
@@ -60,7 +61,7 @@ export const KuitansiPerjadinDalamKotaForm: React.FC<{extracted?:ExtractedReceip
     if(!extracted?.rows.length)return;
     if(extracted.date)setTanggalKuitansi(extracted.date);
     if(extracted.account)setKodeAkun(extracted.account);
-    setRecipients(extracted.rows.map((r,i)=>({id:r.id||'ext-'+i,nama:r.nama,nip:'',golongan:'',jabatan:'',uraianItem:r.uraianItem,volume:r.volume,satuan:r.satuan||'Org/Hari',tarifSatuan:r.tarifSatuan,pphRate:r.bruto?r.pphNominal/r.bruto*100:0,rekening:'',bank:''})));
+    setRecipients(extracted.rows.map((r,i)=>({id:r.id||'ext-'+i,nama:r.nama,nip:'',golongan:'',jabatan:'',uraianItem:r.uraianItem,volume:r.volume,satuan:r.satuan||'Org/Hari',tarifSatuan:r.tarifSatuan,pphRate:r.bruto?r.pphNominal/r.bruto*100:0,rekening:'',bank:'',tanggalPelaksanaan:r.tanggalPelaksanaan})));
     showToast('Rincian ekstraktor sudah dimasukkan ke formulir Perjadin Dalam Kota. Periksa nominal dan potongan sebelum simpan.','info');
   },[extracted]);
   // Aggregate Calculations
@@ -477,7 +478,7 @@ export const KuitansiPerjadinDalamKotaForm: React.FC<{extracted?:ExtractedReceip
           </button>
         </div>
       </div>
-      <PerjadinReceiptPreview open={previewOpen} onClose={()=>setPreviewOpen(false)} title="Perjadin Dalam Kota" date={tanggalKuitansi} source={sumberDana} account={kodeAkun} details={calculatedItems.map(x=>({nama:x.nama,uraian:x.uraianItem,volume:x.volume,satuan:x.satuan,tarif:x.tarifSatuan,bruto:x.bruto,pph:x.pphNominal,netto:x.netto}))}/>
+      <PerjadinReceiptPreview open={previewOpen} onClose={()=>setPreviewOpen(false)} title="Perjadin Dalam Kota" date={tanggalKuitansi} source={sumberDana} account={kodeAkun} purpose={extracted?.activity} details={calculatedItems.map(x=>({nama:x.nama,uraian:x.uraianItem,volume:x.volume,satuan:x.satuan,tarif:x.tarifSatuan,bruto:x.bruto,pph:x.pphNominal,netto:x.netto,tanggalPelaksanaan:x.tanggalPelaksanaan}))}/>
     </div>
   );
 };
