@@ -37,6 +37,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, setMobileOpen }) =
   });
 
   const isKuitansiActive = activeView.startsWith('kuitansi_');
+  const [ekstraktorExpanded,setEkstraktorExpanded]=useState(()=>activeView.startsWith('ekstraktor'));
+  const isEkstraktorActive=activeView.startsWith('ekstraktor');
 
   const handleNavClick = (view: ActiveView) => {
     setActiveView(view);
@@ -162,14 +164,25 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, setMobileOpen }) =
             )}
           </div>
 
-          {/* Ekstraktor Kuitansi Luar Sistem */}
-          <button
-            onClick={() => handleNavClick('ekstraktor')}
-            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors text-left ${activeView==='ekstraktor'?'bg-blue-600 text-white font-semibold shadow-sm':'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
-          >
-            <ScanLine className="w-4 h-4 shrink-0 text-emerald-400"/>
-            <span>Ekstraktor Kuitansi</span>
-          </button>
+          {/* Ekstraktor Kuitansi (tiga submodul sesuai jenis kuitansi) */}
+          <div className="space-y-1">
+            <button type="button" aria-expanded={ekstraktorExpanded}
+              onClick={()=>setEkstraktorExpanded(v=>!v)}
+              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-left ${isEkstraktorActive?'bg-slate-800 text-white':'text-slate-300 hover:bg-slate-800'}`}>
+              <span className="flex items-center gap-3"><ScanLine className="w-4 h-4 shrink-0 text-emerald-400"/>Ekstraktor Kuitansi</span>
+              {ekstraktorExpanded?<ChevronDown className="w-3.5 h-3.5"/>:<ChevronRight className="w-3.5 h-3.5"/>}
+            </button>
+            {ekstraktorExpanded&&<div className="pl-6 space-y-1 pt-1">
+              {([
+                ['ekstraktor_profesi','Jasa Profesi',Briefcase],
+                ['ekstraktor_luar_kota','Perjadin Luar Kota',Plane],
+                ['ekstraktor_dalam_kota','Perjadin Dalam Kota',Car]
+              ] as const).map(([view,label,Icon])=><button key={view} type="button" onClick={()=>handleNavClick(view)}
+                className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-xs text-left ${activeView===view?'bg-blue-600/90 text-white font-semibold':'text-slate-400 hover:bg-slate-800/60 hover:text-slate-200'}`}>
+                <Icon className="w-3.5 h-3.5 shrink-0"/>{label}
+              </button>)}
+            </div>}
+          </div>
 
           {/* SPTB */}
           <button
