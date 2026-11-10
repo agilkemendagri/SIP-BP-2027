@@ -12,7 +12,9 @@ import {KuitansiPerjadinDalamKotaForm} from "./kuitansi/KuitansiPerjadinDalamKot
 import {SptbView} from "./sptb/SptbView";
 import {RekapView} from "./rekap/RekapView";
 import {PenggunaView} from "./pengguna/PenggunaView";
-import {KuitansiExtractorView} from "./kuitansi/KuitansiExtractorView";
+import {KuitansiWithExtractor} from "./kuitansi/KuitansiWithExtractor";
+import {PejabatSettingsProvider} from "../context/PejabatSettingsContext";
+import {PejabatSettingsView} from "./pengguna/PejabatSettingsView";
 import {KuitansiPrintModal} from "./modals/KuitansiPrintModal";
 import {SptbPrintModal} from "./modals/SptbPrintModal";
 import {BulkSaktiModal} from "./modals/BulkSaktiModal";
@@ -36,17 +38,13 @@ function Content(){
     </div>
     {dataError&&<div role="alert" className="rounded-lg bg-red-50 border border-red-200 p-3 text-red-800 text-sm mb-4 flex gap-2"><AlertTriangle size={16}/>{dataError}. Data yang tampil mungkin belum terbaru.</div>}
     {activeView==="dashboard"&&<DashboardView/>}
-    {activeView==="kuitansi_profesi"&&<KuitansiProfesiForm/>}
-    {activeView==="kuitansi_luar_kota"&&<KuitansiPerjadinLuarKotaForm/>}
-    {activeView==="kuitansi_dalam_kota"&&<KuitansiPerjadinDalamKotaForm/>}
+    {activeView==="kuitansi_profesi"&&<KuitansiWithExtractor type="jasa_profesi"><KuitansiProfesiForm/></KuitansiWithExtractor>}
+    {activeView==="kuitansi_luar_kota"&&<KuitansiWithExtractor type="perjadin_luar_kota"><KuitansiPerjadinLuarKotaForm/></KuitansiWithExtractor>}
+    {activeView==="kuitansi_dalam_kota"&&<KuitansiWithExtractor type="perjadin_dalam_kota"><KuitansiPerjadinDalamKotaForm/></KuitansiWithExtractor>}
     {activeView==="sptb"&&<SptbView/>}
     {activeView==="transaksi"&&<DaftarTransaksiView/>}
     {activeView==="rekap"&&<RekapView/>}
-    {activeView==="pengguna"&&<PenggunaView/>}
-    {activeView==="ekstraktor"&&<KuitansiExtractorView/>}
-    {activeView==="ekstraktor_profesi"&&<KuitansiExtractorView key="profesi" fixedType="jasa_profesi"/>}
-    {activeView==="ekstraktor_luar_kota"&&<KuitansiExtractorView key="luar" fixedType="perjadin_luar_kota"/>}
-    {activeView==="ekstraktor_dalam_kota"&&<KuitansiExtractorView key="dalam" fixedType="perjadin_dalam_kota"/>}
+    {activeView==="pengguna"&&<div className="space-y-5"><PejabatSettingsView/><PenggunaView/></div>}
    </main>
    <footer className="text-xs text-slate-500 border-t border-slate-200 py-4 px-6 text-center">
     SIP-BP · BBPKA PDN IV · {isProductionEnvironment ? "Sistem Bendahara Pengeluaran" : "Lingkungan pengembangan · Bukan untuk data keuangan riil"}
@@ -55,4 +53,4 @@ function Content(){
   <PilihJenisKuitansiModal/><KuitansiPrintModal/><SptbPrintModal/><BulkSaktiModal/><ToastContainer/>
  </div>;
 }
-export const SecureFinanceShell:React.FC<{profile:SipProfile;onProfileUpdated:(profile:SipProfile)=>void}>=({profile,onProfileUpdated})=><AppProvider authenticatedProfile={profile} onProfileUpdated={onProfileUpdated}><Content/></AppProvider>;
+export const SecureFinanceShell:React.FC<{profile:SipProfile;onProfileUpdated:(profile:SipProfile)=>void}>=({profile,onProfileUpdated})=><AppProvider authenticatedProfile={profile} onProfileUpdated={onProfileUpdated}><PejabatSettingsProvider><Content/></PejabatSettingsProvider></AppProvider>;
