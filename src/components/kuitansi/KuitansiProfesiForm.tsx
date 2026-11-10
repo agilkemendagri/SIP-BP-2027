@@ -528,7 +528,7 @@ export const KuitansiProfesiForm: React.FC<{extracted?:ExtractedReceiptData}> = 
       namaPenerima,
       nipPenerima,
       golonganPenerima,
-      uraianUmum,
+      uraianUmum: individualSessionCalculated.map(s=>s.uraianSesi.trim()).filter(Boolean).join('; '),
       sumberDana,
       kotaTandaTerima,
       tanggalKuitansi,
@@ -1248,7 +1248,7 @@ export const KuitansiProfesiForm: React.FC<{extracted?:ExtractedReceiptData}> = 
                     namaPenerima={namaPenerima}
                     nipPenerima={nipPenerima}
                     golonganPenerima={golonganPenerima}
-                    uraianKegiatan={uraianUmum}
+                    uraianKegiatan={individualSessionCalculated.map(s=>s.uraianSesi.trim()).filter(Boolean).join('; ')}
                     sumberDana={sumberDana}
                     kota={kotaTandaTerima}
                     tanggalIndo={formatTanggalIndo(tanggalKuitansi)}
