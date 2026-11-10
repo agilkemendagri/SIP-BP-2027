@@ -19,6 +19,7 @@ interface BiayaItem {
   volume: number;
   satuan: string;
   tarifSatuan: number;
+  keterangan?:string;tarifDasar?:number;persentase?:number;
 }
 
 export const KuitansiPerjadinLuarKotaForm: React.FC<{extracted?:ExtractedReceiptData}> = ({extracted}) => {
@@ -64,7 +65,7 @@ export const KuitansiPerjadinLuarKotaForm: React.FC<{extracted?:ExtractedReceipt
    if(extracted.date)setTanggalKuitansi(extracted.date);
    if(extracted.account)setKodeAkun(extracted.account);
    setNamaPelaksana(r[0].nama);
-   setBiayaItems(r.map((x,i)=>({id:x.id||'ext-'+i,kategori:'Lainnya',uraian:x.uraianItem,volume:x.volume,satuan:x.satuan||'Hari',tarifSatuan:x.tarifSatuan})));
+   setBiayaItems(r.map((x,i)=>({id:x.id||'ext-'+i,kategori:'Lainnya',uraian:x.uraianItem,volume:x.volume,satuan:x.satuan||'Hari',tarifSatuan:x.tarifSatuan,keterangan:x.keterangan,tarifDasar:x.tarifDasar,persentase:x.persentase})));
    setPphNominal(r.reduce((n,x)=>n+x.pphNominal,0));
    setPpnNominal(r.reduce((n,x)=>n+x.ppnNominal,0));
    showToast('Data ekstraktor dimasukkan ke formulir Perjadin Luar Kota. Periksa seluruh rincian.','info');
@@ -515,7 +516,7 @@ export const KuitansiPerjadinLuarKotaForm: React.FC<{extracted?:ExtractedReceipt
           </button>
         </div>
       </div>
-      <PerjadinReceiptPreview open={previewOpen} onClose={()=>setPreviewOpen(false)} title="Perjadin Luar Kota" date={tanggalKuitansi} source={sumberDana} account={kodeAkun} ppn={ppnNominal} pph={pphNominal} details={biayaItems.map(x=>({nama:namaPelaksana,uraian:x.uraian||x.kategori,volume:x.volume,satuan:x.satuan,tarif:x.tarifSatuan,bruto:x.volume*x.tarifSatuan,pph:0,netto:x.volume*x.tarifSatuan}))}/>
+      <PerjadinReceiptPreview open={previewOpen} onClose={()=>setPreviewOpen(false)} title="Perjadin Luar Kota" date={tanggalKuitansi} source={sumberDana} account={kodeAkun} sppdNomor={extracted?.sourceNumber} tanggalSppd={extracted?.tanggalSppd} ppn={ppnNominal} pph={pphNominal} details={biayaItems.map(x=>({nama:namaPelaksana,uraian:x.uraian||x.kategori,volume:x.volume,satuan:x.satuan,tarif:x.tarifSatuan,bruto:x.volume*x.tarifSatuan,pph:0,netto:x.volume*x.tarifSatuan,keterangan:x.keterangan,tarifDasar:x.tarifDasar,persentase:x.persentase}))}/>
     </div>
   );
 };
