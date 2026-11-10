@@ -114,6 +114,9 @@ export const KuitansiExtractorView:React.FC=()=>{
   if(!confirmed){setError('Centang konfirmasi hasil pemeriksaan sebelum menyimpan.');return;}
   if(!/^\d{6}$/.test(account)){setError('Kode akun harus 6 digit sesuai dokumen anggaran.');return;}
   if(!/^20\d{2}-\d{2}-\d{2}$/.test(date)){setError('Tanggal kuitansi wajib valid (YYYY-MM-DD).');return;}
+  if(imported && parseReceiptText(text).documentKind==='travel' && type==='jasa_profesi'){
+   setError('Dokumen SPPD harus diklasifikasikan sebagai perjalanan dinas dalam kota atau luar kota sebelum disimpan.');return;
+  }
   if(!activity.trim()){setError('Nama kegiatan wajib diisi.');return;}
   if(!rows.length){setError('Minimal ada satu baris rincian kuitansi.');return;}
   if(rows.some(r=>!r.nama.trim()||!r.uraianItem.trim()||r.bruto<=0||r.volume<=0||r.tarifSatuan<0||r.netto<0)){
@@ -210,7 +213,7 @@ export const KuitansiExtractorView:React.FC=()=>{
    </section>
    <section className="bg-white border rounded-xl p-4">
     <div className="flex justify-between flex-wrap gap-3 items-center mb-3">
-     <h3 className="font-bold">Rincian Penerima ({rows.length} baris)</h3>
+     <h3 className="font-bold">{parseReceiptText(text).documentKind==='travel'?'Rincian Biaya Perjalanan Dinas':'Rincian Penerima'} ({rows.length} baris)</h3>
      <div className="flex gap-2">
       <button type="button" onClick={recalcRows} className="border border-blue-200 text-blue-700 px-3 py-2 rounded-lg text-xs flex items-center gap-1"><RefreshCw size={13}/>Hitung Netto</button>
       <button type="button" onClick={()=>{setRows(v=>[...v,freshRow()]);setConfirmed(false);}} className="bg-blue-700 text-white px-3 py-2 rounded-lg text-xs flex items-center gap-1"><Plus size={14}/>Tambah Baris</button>
