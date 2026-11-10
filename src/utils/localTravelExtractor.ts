@@ -50,7 +50,7 @@ export function parseWithinCityReceipt(input:string,lines:string[]):ParsedReceip
   || !/\bperjalanan\s+dinas\s+dalam\s+kota\b/i.test(input))return null;
  const warnings:string[]=[];
  const titleIdx=lines.findIndex(line=>/\bPerjalanan\s+dinas\s+dalam\s+kota\b/i.test(line));
- const tableIdx=lines.findIndex(line=>/\bTANGGAL\b/i.test(line)&&/\bPELAKSANAAN\b/i.test(input));
+ const tableIdx=lines.findIndex((line,i)=>i>titleIdx && (/^\s*TANGGAL\s*$/i.test(line)||/^\s*NO\s+NAMA\b/i.test(line)));
  const totalIdx=lines.findIndex((line,i)=>i>tableIdx&&/^\s*JUMLAH\b/i.test(line));
  const headerLines=lines.slice(titleIdx,tableIdx>titleIdx?tableIdx:undefined).join(' ');
  const activity=headerLines.trim()||'Perjalanan dinas dalam kota';
